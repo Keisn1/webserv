@@ -5,8 +5,7 @@
 class IHttpParser {
   public:
     virtual ~IHttpParser();
-    virtual void
-    parse(char *buf) = 0; // !!! buffer needs to be NULL-terminated !!!
+    virtual void feed(const char *buf, size_t bufLen) = 0;
     virtual int error(void) = 0;
     virtual int ready(void) = 0;
     virtual HttpRequest getRequest(void) = 0;

@@ -4,10 +4,14 @@
 #include "IHttpParser.h"
 
 class HttpParser : public IHttpParser {
-    void parse(char* buf);
-    int error(void) = 0;
-	int ready(void) = 0;
-    HttpRequest getRequest(void);
+  public:
+    void feed(const char *buf, size_t bufLen) {
+        (void)buf;
+        (void)bufLen;
+    };
+    int error(void) { return 0; };
+    int ready(void) { return 0; };
+    HttpRequest getRequest(void) { return HttpRequest{""}; };
 };
 
 #endif // HTTPPARSER_H
