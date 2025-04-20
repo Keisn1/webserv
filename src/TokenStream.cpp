@@ -125,6 +125,12 @@ Token TokenStream::next() {
     return token;
 }
 
+void TokenStream::unget() {
+    if (_index > 0) {
+        _index--;
+    }
+}
+
 bool TokenStream::hasMore() const {
     return peek().type != ENDOFFILE;
 }

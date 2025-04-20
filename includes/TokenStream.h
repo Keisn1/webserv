@@ -37,6 +37,7 @@ class TokenStream {
     TokenStream(const std::string& input);
     const Token& peek(int ahead = 0) const;
     Token next();
+    void unget();
     bool hasMore() const;
     void expect(TokenType ttype, const std::string& tvalue = "");
     bool accept(TokenType ttype, const std::string& tvalue = "");

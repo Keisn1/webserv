@@ -12,6 +12,7 @@ typedef struct Directive {
 
 typedef struct Context {
   std::string name;                   // e.g.  "server" or "location"
+  std::vector<std::string> parameters;
   std::vector<Directive> directives;  // all directives directly inside this block
   std::vector<Context> children;      // nested blocks (e.g. location { … })
 } Context;
