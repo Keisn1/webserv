@@ -1,11 +1,9 @@
-#ifndef CONFIGPARSER_H
-#define CONFIGPARSER_H
+#ifndef CONFISTRUCTURE_H
+#define CONFISTRUCTURE_H
 
-#include <iostream>
-#include <vector>
 #include <map>
-
-// first build AST
+#include <vector>
+#include <iostream>
 
 typedef struct Directive {
   std::string name;                   // "listen", "root", "error_page"
@@ -17,8 +15,6 @@ typedef struct Context {
   std::vector<Directive> directives;  // all directives directly inside this block
   std::vector<Context> children;      // nested blocks (e.g. location { … })
 } Context;
-
-// convert tree into typed config structure
 
 typedef struct LocationConfig {
   std::string prefix;
@@ -37,4 +33,4 @@ typedef struct ServerConfig {
   /* ...others... */
 } ServerConfig;
 
-#endif // CONFIGPARSER_H
+#endif // CONFISTRUCTURE_H

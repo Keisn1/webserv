@@ -1,14 +1,12 @@
-#ifndef CONFIGPARSER_H
-#define CONFIGPARSER_H
+#ifndef ICONFIGPARSER_H
+#define ICONFIGPARSER_H
 
 #include <ConfigStructure.h>
-
-typedef struct ServerConfig;
 
 class IConfigParser {
   public:
     virtual ~IConfigParser();
-    virtual ServerConfig getServerConfig(const int fd) = 0;
+    virtual ServerConfig getServerConfig(const std::string& filename) = 0;
 };
 
-#endif // CONFIGPARSER_H
+#endif // ICONFIGPARSER_H
