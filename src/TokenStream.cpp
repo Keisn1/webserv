@@ -20,7 +20,6 @@ void TokenStream::_tokenize() {
         } else if (c == '\n') {                                             // newline
             _advance();
             _line++; _col = 1;
-            continue;
         } else if (c == '#') {                                              // comments
             while (_pos < _text.size() && _text[_pos] != '\n')
                 _advance();

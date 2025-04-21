@@ -11,8 +11,8 @@ class ConfigParser : public IConfigParser {
   private:
     Context _ast;
     ServerConfig _serverConfig;
-    void _makeServerConfig();
     void _makeAst(const std::string& filename);
+    void _makeServerConfig();
     
   public:
     ConfigParser();
