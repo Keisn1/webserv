@@ -13,6 +13,10 @@ class ConfigParser : public IConfigParser {
     ServerConfig _serverConfig;
     void _makeAst(const std::string& filename);
     void _makeServerConfig();
+    void _parseServerContext(const Context& serverContext);
+    LocationConfig _parseLocationContext(const Context& locationContext);
+    void _processDirectives(const Context& context, ServerConfig& config);
+    void _validateServerContext(const Context& context);
     
   public:
     ConfigParser();
