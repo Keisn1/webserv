@@ -2,7 +2,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-// Helper to generate AST root from config string
 Context buildAST(const std::string& config) {
     ConfigParser parser;
     return parser.getAst(config);
@@ -77,4 +76,113 @@ TEST(ASTTest, IgnoresCommentsAndWhitespace) {
     EXPECT_EQ(server.directives[0].args[0], "3000");
     EXPECT_EQ(server.directives[1].name, "root");
     EXPECT_EQ(server.directives[1].args[0], "/srv/www");
+}
+
+TEST(ASTTest, HandlesEmptyBlock) {
+    std::ofstream file;
+    file.open("configTest");
+    file << "server {}\n";
+    file.close();
+    Context root = buildAST("configTest");
+    std::remove("configTest");
+
+    ASSERT_EQ(root.children.size(), 1);
+    const Context& server = root.children[0];
+    EXPECT_EQ(server.name, "server");
+    EXPECT_TRUE(server.directives.empty());
+    EXPECT_TRUE(server.children.empty());
+}
+
+TEST(ASTTest, ThrowsOnMissingSemicolon) {
+    std::ofstream file;
+    file.open("configTest");
+    file << "server {\n"
+         << "    listen 80\n"
+         << "}\n";
+    file.close();
+    
+    EXPECT_THROW({
+        Context root = buildAST("configTest");
+    }, std::runtime_error);
+    std::remove("configTest");
+}
+
+TEST(ASTTest, ThrowsOnUnclosedBlock) {
+    std::ofstream file;
+    file.open("configTest");
+    file << "server {\n"
+         << "    listen 80;\n";
+    file.close();
+    
+    EXPECT_THROW({
+        Context root = buildAST("configTest");
+    }, std::runtime_error);
+    std::remove("configTest");
+}
+
+TEST(ASTTest, ParsesMultipleTopLevelBlocks) {
+    std::ofstream file;
+    file.open("configTest");
+    file << "server { listen 80; }\n"
+         << "server { listen 8080; }\n";
+    file.close();
+    Context root = buildAST("configTest");
+    std::remove("configTest");
+
+    ASSERT_EQ(root.children.size(), 2);
+    EXPECT_EQ(root.children[0].directives[0].args[0], "80");
+    EXPECT_EQ(root.children[1].directives[0].args[0], "8080");
+}
+
+TEST(ASTTest, HandlesMixedDirectivesAndBlocks) {
+    std::ofstream file;
+    file.open("configTest");
+    file << "server {\n"
+         << "    listen 80;\n"
+         << "    location / {\n"
+         << "        index index.html;\n"
+         << "    }\n"
+         << "    root /var/www;\n"
+         << "}\n";
+    file.close();
+    Context root = buildAST("configTest");
+    std::remove("configTest");
+
+    const Context& server = root.children[0];
+    ASSERT_EQ(server.directives.size(), 2);
+    EXPECT_EQ(server.directives[0].name, "listen");
+    EXPECT_EQ(server.directives[1].name, "root");
+    ASSERT_EQ(server.children.size(), 1);
+    EXPECT_EQ(server.children[0].directives[0].name, "index");
+}
+
+TEST(ASTTest, ParsesQuotedArguments) {
+    std::ofstream file;
+    file.open("configTest");
+    file << "server {\n"
+         << "    root \"/var/www/my site\";\n"
+         << "}\n";
+    file.close();
+    Context root = buildAST("configTest");
+    std::remove("configTest");
+
+    const Context& server = root.children[0];
+    ASSERT_EQ(server.directives.size(), 1);
+    EXPECT_EQ(server.directives[0].args[0], "/var/www/my site");
+}
+
+TEST(ASTTest, ThrowsOnNonexistentFile) {
+    EXPECT_THROW({
+        Context root = buildAST("nonexistent.conf");
+    }, std::runtime_error);
+}
+
+TEST(ASTTest, HandlesEmptyFile) {
+    std::ofstream file;
+    file.open("configTest");  // Empty file
+    file.close();
+    
+    Context root = buildAST("configTest");
+    std::remove("configTest");
+    EXPECT_TRUE(root.children.empty());
 }
