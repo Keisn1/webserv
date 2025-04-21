@@ -48,7 +48,7 @@ Context parseBlock(TokenStream& ts) {
     // Collect parameters until '{'
     while (ts.peek().type != PUNCT || ts.peek().value != "{") {
         Token paramToken = ts.next();
-        if (paramToken.type == ENDOFFILE) {
+        if (paramToken.type == END_OF_FILE) {
             throw std::runtime_error("Unexpected end of file");
         }
         if (paramToken.type == PUNCT && paramToken.value == ";") {
@@ -71,7 +71,7 @@ void ConfigParser::makeAst(TokenStream& ts) {
     _ast.name = "root";
 
     // While there are tokens before EOF
-    while (ts.peek().type != ENDOFFILE) {
+    while (ts.peek().type != END_OF_FILE) {
         if (ts.accept(PUNCT, ";"))
             continue;
         if (ts.peek().type == IDENTIFIER && ts.peek(1).value == "{") {

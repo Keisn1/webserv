@@ -6,8 +6,7 @@ std::string TokenStream::_tokenDesc(TokenType ttype, const std::string& tvalue) 
         case NUMBER: return "number";
         case STRING: return "string";
         case PUNCT: return "'" + tvalue + "'";
-        case ENDOFFILE: return "end-of-file";
-        case COMMENTS: return "comment";
+        case END_OF_FILE: return "end-of-file";
     }
     return "";
 }
@@ -15,25 +14,17 @@ std::string TokenStream::_tokenDesc(TokenType ttype, const std::string& tvalue) 
 void TokenStream::_tokenize() {
     while (_pos < _text.size()) {
         char c = _text[_pos];
-        // Skip whitespace
-        if (c == ' ' || c == '\t' || c == '\r') {
+        
+        if (c == ' ' || c == '\t' || c == '\r') {                           // whitespace
             _advance();
-            continue;
-        }
-        // Newline
-        if (c == '\n') {
+        } else if (c == '\n') {                                             // newline
             _advance();
             _line++; _col = 1;
             continue;
-        }
-        // Comments (# ... to end of line)
-        if (c == '#') {
+        } else if (c == '#') {                                              // comments
             while (_pos < _text.size() && _text[_pos] != '\n')
                 _advance();
-            continue;
-        }
-        // Identifier or keyword: [A-Za-z_][A-Za-z0-9_]* 
-        if (isalpha(c) || c == '_' || c == '/') {
+        } else if (isalpha(c) || c == '_' || c == '/') {                    // identifier
             int startCol = _col;
             std::string val;
             while (_pos < _text.size() && (isalnum(_text[_pos]) || _text[_pos] == '_' || _text[_pos] == '/')) {
@@ -41,10 +32,7 @@ void TokenStream::_tokenize() {
                 _advance();
             }
             _tokens.push_back(Token{IDENTIFIER, val, _line, startCol});
-            continue;
-        }
-        // Number: [0-9]+
-        if (isdigit(c)) {
+        } else if (isdigit(c)) {                                            // number
             int startCol = _col;
             std::string val;
             while (_pos < _text.size() && isdigit(_text[_pos])) {
@@ -52,35 +40,27 @@ void TokenStream::_tokenize() {
                 _advance();
             }
             _tokens.push_back(Token{NUMBER, val, _line, startCol});
-            continue;
-        }
-        // String literal: " ... "
-        if (c == '"') {
+        } else if (c == '"') {                                              // string literal
             int startCol = _col;
             _advance();  // consume "
             std::string val;
             while (_pos < _text.size() && _text[_pos] != '"') {
-                // Allow escaped quotes? (optional)
                 val += _text[_pos];
                 _advance();
             }
             _expectChar('"');
             _tokens.push_back(Token{STRING, val, _line, startCol});
-            continue;
-        }
-        // Punctuation: { } ; 
-        if (c == '{' || c == '}' || c == ';') {
+        } else if (c == '{' || c == '}' || c == ';') {                      // punctuation
             int startCol = _col;
             std::string val(1, c);
             _advance();
             _tokens.push_back(Token{PUNCT, val, _line, startCol});
-            continue;
+        } else {                                                            // error
+            throw std::runtime_error(
+                "Unexpected character `" + std::string(1,c)
+                + "` at line " + toString(_line)
+                + " col " + toString(_col));
         }
-        // Anything else is an error
-        throw std::runtime_error(
-            "Unexpected character `" + std::string(1,c)
-            + "` at line " + toString(_line)
-            + " col " + toString(_col));
     }
 }
 
@@ -102,7 +82,7 @@ void TokenStream::_expectChar(char expected) {
 TokenStream::TokenStream(const std::string& input) : _text(input), _pos(0), _line(1), _col(0) {
     _tokenize();
     _tokens.push_back(Token());
-    _tokens.back().type = ENDOFFILE;
+    _tokens.back().type = END_OF_FILE;
     _tokens.back().value = "";
     _tokens.back().line  = _line;
     _tokens.back().column   = _col;
@@ -132,25 +112,25 @@ void TokenStream::unget() {
 }
 
 bool TokenStream::hasMore() const {
-    return peek().type != ENDOFFILE;
+    return peek().type != END_OF_FILE;
 }
 
-bool TokenStream::accept(TokenType ttype, const std::string& tval) {
+bool TokenStream::accept(TokenType ttype, const std::string& tvalue) {
     const Token& token = peek();
-    if (token.type == ttype && (tval.empty() || token.value == tval)) {
+    if (token.type == ttype && (tvalue.empty() || token.value == tvalue)) {
         next();
         return true;
     }
     return false;
 }
 
-void TokenStream::expect(TokenType ttype, const std::string& tval) {
+void TokenStream::expect(TokenType ttype, const std::string& tvalue) {
     const Token& token = peek();
-    if (token.type != ttype || (!tval.empty() && token.value != tval)) {
+    if (token.type != ttype || (!tvalue.empty() && token.value != tvalue)) {
         std::string msg = "Parse error at line " + toString(token.line)
                             + " col " + toString(token.column)
                             + ": expected ";
-        msg += _tokenDesc(ttype, tval) + ", got `" + token.value + "`";
+        msg += _tokenDesc(ttype, tvalue) + ", got `" + token.value + "`";
         throw std::runtime_error(msg);
     }
     next();

@@ -12,8 +12,7 @@ enum TokenType {
   NUMBER,
   STRING,
   PUNCT,
-  ENDOFFILE,
-  COMMENTS
+  END_OF_FILE,
 };
 
 typedef struct Token {
@@ -28,19 +27,19 @@ class TokenStream {
     std::vector<Token> _tokens;
     size_t _pos, _index;
     int _line, _col;
-    std::string _tokenDesc(TokenType ttype, const std::string& tv) const;
+    std::string _tokenDesc(TokenType ttype, const std::string& tvalue) const;
     void _tokenize();
     void _advance();
     void _expectChar(char expected);
 
-    public:
+  public:
     TokenStream(const std::string& input);
     const Token& peek(int ahead = 0) const;
     Token next();
     void unget();
     bool hasMore() const;
-    void expect(TokenType ttype, const std::string& tvalue = "");
     bool accept(TokenType ttype, const std::string& tvalue = "");
+    void expect(TokenType ttype, const std::string& tvalue = "");
 };
 
 std::string toString(int value);
