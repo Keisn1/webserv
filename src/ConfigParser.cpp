@@ -35,35 +35,35 @@ void parseDirectiveOrBlock(TokenStream& ts, Context& ctx) {
     }
 }
 
-Context parseBlock(TokenStream& ts) {
-    Context ctx;
+Context parseBlock(TokenStream& tokenstream) {
+    Context context;
 
     // Read block name
-    Token nameToken = ts.next();
+    Token nameToken = tokenstream.next();
     if (nameToken.type != IDENTIFIER) {
         throw std::runtime_error("Expected block name");
     }
-    ctx.name = nameToken.value;
+    context.name = nameToken.value;
 
     // Collect parameters until '{'
-    while (ts.peek().type != PUNCT || ts.peek().value != "{") {
-        Token paramToken = ts.next();
+    while (tokenstream.peek().type != PUNCT || tokenstream.peek().value != "{") {
+        Token paramToken = tokenstream.next();
         if (paramToken.type == END_OF_FILE) {
             throw std::runtime_error("Unexpected end of file");
         }
         if (paramToken.type == PUNCT && paramToken.value == ";") {
             throw std::runtime_error("Unexpected ';' in block parameters");
         }
-        ctx.parameters.push_back(paramToken.value);
+        context.parameters.push_back(paramToken.value);
     }
-    ts.expect(PUNCT, "{");
+    tokenstream.expect(PUNCT, "{");
 
     // Parse contents
-    while (!ts.accept(PUNCT, "}")) {
-        parseDirectiveOrBlock(ts, ctx);
+    while (!tokenstream.accept(PUNCT, "}")) {
+        parseDirectiveOrBlock(tokenstream, context);
     }
 
-    return ctx;
+    return context;
 }
 
 void ConfigParser::_makeAst(const std::string& filename) {
@@ -83,8 +83,9 @@ void ConfigParser::_makeAst(const std::string& filename) {
     _ast.name = "root";
 
     while (tokenstream.hasMore()) {
-        if (tokenstream.accept(PUNCT, ";"))
+        if (tokenstream.accept(PUNCT, ";")) {
             continue;
+        }
         if (tokenstream.peek().type == IDENTIFIER && tokenstream.peek(1).value == "{") {
             Context block = parseBlock(tokenstream);
             _ast.children.push_back(block);
