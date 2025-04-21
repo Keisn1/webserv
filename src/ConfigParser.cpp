@@ -4,66 +4,46 @@ ConfigParser::ConfigParser() {};
 ConfigParser::~ConfigParser() {};
 IConfigParser::~IConfigParser() {};
 
-void parseDirectiveOrBlock(TokenStream& ts, Context& ctx) {
-    Token nameToken = ts.next();  // e.g., "location"
-    std::vector<std::string> tokens;
+void parseDirectiveOrBlock(TokenStream& ts, Context& currentBlock) {
+    if (!ts.hasMore()) return;
 
-    // Collect tokens until we hit '{', ';', or '}'
-    while (ts.peek().type != PUNCT || (ts.peek().value != "{" && ts.peek().value != ";" && ts.peek().value != "}")) {
-        tokens.push_back(ts.next().value);
+    Token nameToken = ts.next();
+    if (nameToken.type != IDENTIFIER) {
+        throw std::runtime_error("Expected identifier for directive/block");
     }
 
-    if (ts.peek().type == PUNCT && ts.peek().value == "{") {
-        // Parse as a block
+    std::set<std::string> terminators;
+    terminators.insert("{");
+    terminators.insert(";");
+    terminators.insert("}");
+    std::vector<std::string> args = ts.collectArguments(terminators);
+
+    if (!ts.hasMore()) {
+        throw std::runtime_error("Unexpected end of file");
+    }
+
+    Token punctToken = ts.peek();
+    if (punctToken.value == "{") {
         ts.expect(PUNCT, "{");
         Context child;
         child.name = nameToken.value;
-        child.parameters = tokens;  // e.g., ["/images"]
+        child.parameters = args;
         while (!ts.accept(PUNCT, "}")) {
+            if (!ts.hasMore()) {
+                throw std::runtime_error("Unclosed block");
+            }
             parseDirectiveOrBlock(ts, child);
         }
-        ctx.children.push_back(child);
-    } else {
-        // Parse as a directive
+        currentBlock.children.push_back(child);
+    } else if (punctToken.value == ";") {
+        ts.next(); // Consume ';'
         Directive dir;
         dir.name = nameToken.value;
-        dir.args = tokens;
-        if (!ts.accept(PUNCT, ";")) {
-            throw std::runtime_error("Expected ';' at end of directive");
-        }
-        ctx.directives.push_back(dir);
+        dir.args = args;
+        currentBlock.directives.push_back(dir);
+    } else {
+        throw std::runtime_error("Expected '{' or ';' after parameters");
     }
-}
-
-Context parseBlock(TokenStream& tokenstream) {
-    Context context;
-
-    // Read block name
-    Token nameToken = tokenstream.next();
-    if (nameToken.type != IDENTIFIER) {
-        throw std::runtime_error("Expected block name");
-    }
-    context.name = nameToken.value;
-
-    // Collect parameters until '{'
-    while (tokenstream.peek().type != PUNCT || tokenstream.peek().value != "{") {
-        Token paramToken = tokenstream.next();
-        if (paramToken.type == END_OF_FILE) {
-            throw std::runtime_error("Unexpected end of file");
-        }
-        if (paramToken.type == PUNCT && paramToken.value == ";") {
-            throw std::runtime_error("Unexpected ';' in block parameters");
-        }
-        context.parameters.push_back(paramToken.value);
-    }
-    tokenstream.expect(PUNCT, "{");
-
-    // Parse contents
-    while (!tokenstream.accept(PUNCT, "}")) {
-        parseDirectiveOrBlock(tokenstream, context);
-    }
-
-    return context;
 }
 
 void ConfigParser::_makeAst(const std::string& filename) {
@@ -86,16 +66,7 @@ void ConfigParser::_makeAst(const std::string& filename) {
         if (tokenstream.accept(PUNCT, ";")) {
             continue;
         }
-        if (tokenstream.peek().type == IDENTIFIER && tokenstream.peek(1).value == "{") {
-            Context block = parseBlock(tokenstream);
-            _ast.children.push_back(block);
-        } else {
-            const Token& t = tokenstream.peek();
-            throw std::runtime_error(
-                "Unexpected token at " + toString(t.line) + ":" + toString(t.column) +
-                " — expected block name"
-            );
-        }
+        parseDirectiveOrBlock(tokenstream, _ast);
     }
 }
 
@@ -108,5 +79,3 @@ ServerConfig ConfigParser::getServerConfig(const std::string& filename) {
     _makeAst(filename);
     return _serverConfig;
 }
-
-
