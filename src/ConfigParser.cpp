@@ -66,19 +66,30 @@ Context parseBlock(TokenStream& ts) {
     return ctx;
 }
 
-void ConfigParser::makeAst(TokenStream& ts) {
+void ConfigParser::_makeAst(const std::string& filename) {
+    std::ifstream configFile(filename);
+    if (!configFile.is_open()) {
+        throw std::runtime_error("Failed to open configuration file");
+    }
+    std::string buffer;
+    std::string line;
+    while (getline(configFile, line)) {
+        buffer += line + "\n";
+    }
+    configFile.close();
+
+    TokenStream tokenstream(buffer);
     _ast = Context();
     _ast.name = "root";
 
-    // While there are tokens before EOF
-    while (ts.peek().type != END_OF_FILE) {
-        if (ts.accept(PUNCT, ";"))
+    while (tokenstream.hasMore()) {
+        if (tokenstream.accept(PUNCT, ";"))
             continue;
-        if (ts.peek().type == IDENTIFIER && ts.peek(1).value == "{") {
-            Context block = parseBlock(ts);
+        if (tokenstream.peek().type == IDENTIFIER && tokenstream.peek(1).value == "{") {
+            Context block = parseBlock(tokenstream);
             _ast.children.push_back(block);
         } else {
-            const Token& t = ts.peek();
+            const Token& t = tokenstream.peek();
             throw std::runtime_error(
                 "Unexpected token at " + toString(t.line) + ":" + toString(t.column) +
                 " — expected block name"
@@ -87,24 +98,13 @@ void ConfigParser::makeAst(TokenStream& ts) {
     }
 }
 
-Context ConfigParser::getAst() {
+Context ConfigParser::getAst(const std::string& filename) {
+    _makeAst(filename);
     return _ast;
 }
 
 ServerConfig ConfigParser::getServerConfig(const std::string& filename) {
-    // READ AND EXTRACT FILE
-    std::ifstream configFile(filename);
-    std::string line;
-    while (getline(configFile, line)) {
-        _buffer.append(line);
-    }
-    configFile.close();
-
-    TokenStream ts(_buffer);
-
-    makeAst(ts);
-
-
+    _makeAst(filename);
     return _serverConfig;
 }
 

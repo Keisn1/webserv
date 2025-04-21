@@ -9,17 +9,16 @@
 
 class ConfigParser : public IConfigParser {
   private:
-    std::string _buffer;
     Context _ast;
     ServerConfig _serverConfig;
     void _makeServerConfig();
+    void _makeAst(const std::string& filename);
     
   public:
     ConfigParser();
     ~ConfigParser();
-    void makeAst(TokenStream& ts);
     ServerConfig getServerConfig(const std::string& filename);
-    Context getAst();
+    Context getAst(const std::string& filename);
 };
 
 #endif // CONFIGPARSER_H
