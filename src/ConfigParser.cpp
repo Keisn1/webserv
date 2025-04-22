@@ -4,10 +4,12 @@ ConfigParser::ConfigParser() {};
 ConfigParser::~ConfigParser() {};
 IConfigParser::~IConfigParser() {};
 
-void parseDirectiveOrBlock(TokenStream& ts, Context& currentBlock) {
-    if (!ts.hasMore()) return;
+void parseDirectiveOrBlock(TokenStream& tokenStream, Context& currentBlock) {
+    if (!tokenStream.hasMore()) {
+        return;
+    }
 
-    Token nameToken = ts.next();
+    Token nameToken = tokenStream.next();
     if (nameToken.type != IDENTIFIER) {
         throw std::runtime_error("Expected identifier for directive/block");
     }
@@ -16,27 +18,27 @@ void parseDirectiveOrBlock(TokenStream& ts, Context& currentBlock) {
     terminators.insert("{");
     terminators.insert(";");
     terminators.insert("}");
-    std::vector<std::string> args = ts.collectArguments(terminators);
+    std::vector<std::string> args = tokenStream.collectArguments(terminators);
 
-    if (!ts.hasMore()) {
+    if (!tokenStream.hasMore()) {
         throw std::runtime_error("Unexpected end of file");
     }
 
-    Token punctToken = ts.peek();
+    Token punctToken = tokenStream.peek();
     if (punctToken.value == "{") {
-        ts.expect(PUNCT, "{");
+        tokenStream.expect(PUNCT, "{");
         Context child;
         child.name = nameToken.value;
         child.parameters = args;
-        while (!ts.accept(PUNCT, "}")) {
-            if (!ts.hasMore()) {
+        while (!tokenStream.accept(PUNCT, "}")) {
+            if (!tokenStream.hasMore()) {
                 throw std::runtime_error("Unclosed block");
             }
-            parseDirectiveOrBlock(ts, child);
+            parseDirectiveOrBlock(tokenStream, child);
         }
         currentBlock.children.push_back(child);
     } else if (punctToken.value == ";") {
-        ts.next(); // Consume ';'
+        tokenStream.next(); // Consume ';'
         Directive dir;
         dir.name = nameToken.value;
         dir.args = args;

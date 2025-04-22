@@ -138,8 +138,8 @@ void TokenStream::expect(TokenType ttype, const std::string& tvalue) {
 std::vector<std::string> TokenStream::collectArguments(const std::set<std::string>& terminators) {
     std::vector<std::string> args;
     while (hasMore()) {
-        Token t = peek();
-        if (t.type == PUNCT && terminators.count(t.value)) {
+        Token token = peek();
+        if (token.type == PUNCT && terminators.count(token.value)) {
             break;
         }
         args.push_back(next().value);
