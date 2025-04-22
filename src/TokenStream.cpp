@@ -3,7 +3,6 @@
 std::string TokenStream::_tokenDesc(TokenType ttype, const std::string& tvalue) const {
     switch (ttype) {
         case IDENTIFIER: return "identifier";
-        case NUMBER: return "number";
         case STRING: return "string";
         case PUNCT: return "'" + tvalue + "'";
         case END_OF_FILE: return "end-of-file";
@@ -23,7 +22,7 @@ void TokenStream::_tokenize() {
         } else if (c == '#') {                                              // comments
             while (_pos < _text.size() && _text[_pos] != '\n')
                 _advance();
-        } else if (isalpha(c) || c == '_' || c == '/' || c == '.' || c == ':' || c == '[' || c == ']') {        // identifier
+        } else if (isalnum(c) || c == '_' || c == '/' || c == '.' || c == ':' || c == '[' || c == ']') {        // identifier
             int startCol = _col;
             std::string val;
             while (_pos < _text.size() && (isalnum(_text[_pos]) || _text[_pos] == '_' || _text[_pos] == '/' || _text[_pos] == '.' || _text[_pos] == ':' || _text[_pos] == '[' || _text[_pos] == ']')) {
@@ -31,14 +30,6 @@ void TokenStream::_tokenize() {
                 _advance();
             }
             _tokens.push_back(Token{IDENTIFIER, val, _line, startCol});
-        } else if (isdigit(c)) {                                            // number
-            int startCol = _col;
-            std::string val;
-            while (_pos < _text.size() && isdigit(_text[_pos])) {
-                val += _text[_pos];
-                _advance();
-            }
-            _tokens.push_back(Token{NUMBER, val, _line, startCol});
         } else if (c == '"') {                                              // string literal
             int startCol = _col;
             _advance();  // consume "

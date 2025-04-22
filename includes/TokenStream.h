@@ -10,7 +10,6 @@
 
 enum TokenType {
   IDENTIFIER,
-  NUMBER,
   STRING,
   PUNCT,
   END_OF_FILE,

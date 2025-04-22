@@ -121,27 +121,36 @@ void ConfigParser::_processDirectives(const Context& context, ServerConfig& conf
             }
             config.root = it->args[0];
         } else if (it->name == "client_max_body_size") {
-            std::stringstream ss(it->args[0]);
-            ss >> config.clientMaxBody;
-            
-            if (it->args.size() == 2) {
-                if (it->args[1].size() == 1) {
-                    char unit = std::tolower(it->args[1][0]);
-                    if (unit == 'k') {
-                        config.clientMaxBody *= 1024;
-                    } else if (unit == 'm') {
-                        config.clientMaxBody *= 1024 * 1024;
-                    } else if (unit == 'g') {
-                        config.clientMaxBody *= 1024 * 1024 * 1024;
-                    } else if (isalpha(it->args[0].back())) {
-                        throw std::runtime_error("Invalid client_max_body_size value");
-                    }
-                } else {
-                    throw std::runtime_error("Invalid client_max_body_size value");
-                }
-            } else if (it->args.size() > 2) {
-                throw std::runtime_error("Invalid client_max_body_size value");
+            if (it->args.size() != 1) {
+                throw std::runtime_error("client_max_body_size requires exactly one argument");
             }
+        
+            const std::string& arg = it->args[0];
+            size_t value;
+            char unit = '\0';
+            std::size_t pos = 0;
+            try {
+                value = std::stoull(arg, &pos);
+            } catch (const std::exception&) {
+                throw std::runtime_error("Invalid client_max_body_size value: " + arg);
+            }
+        
+            if (pos < arg.size()) {
+                if (arg.size() - pos > 1) { // Only single-character units allowed
+                    throw std::runtime_error("Invalid unit in client_max_body_size: " + arg);
+                }
+                unit = std::tolower(arg[pos]);
+            }
+        
+            switch (unit) {
+                case 'k': value *= 1024; break;
+                case 'm': value *= 1024 * 1024; break;
+                case 'g': value *= 1024 * 1024 * 1024; break;
+                case '\0': break;
+                default:
+                    throw std::runtime_error("Invalid unit in client_max_body_size: " + std::string(1, unit));
+            }
+            config.clientMaxBody = value;
         }
         // allow_methods
         // index
