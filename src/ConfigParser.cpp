@@ -72,20 +72,75 @@ void ConfigParser::_makeAst(const std::string& filename) {
     }
 }
 
+LocationConfig ConfigParser::_parseLocationContext(const Context& locationContext) {
+    LocationConfig location;
+    
+    if (locationContext.parameters.empty()) {
+        throw std::runtime_error("Location block missing path parameter");
+    }
+    location.prefix = locationContext.parameters[0]; // magic number
+
+    for (std::vector<Directive>::const_iterator it = locationContext.directives.begin();
+         it != locationContext.directives.end(); ++it) {
+        if (it->name == "root") {
+            if (it->args.size() != 1) {
+                throw std::runtime_error("Invalid root directive");
+            }
+            location.root = it->args[0];
+        } else if (it->name == "allow_methods") {
+            location.methods = it->args;
+        }
+        // index
+        // autoindex
+        // root
+        // cgi_path
+        // cgi_ext
+        // maybe more
+    }
+
+    return location;
+}
+
+void ConfigParser::_processDirectives(const Context& context, ServerConfig& config) {
+    for (std::vector<Directive>::const_iterator it = context.directives.begin(); it != context.directives.end(); ++it) {
+        
+        if (it->name == "listen") {
+            if (it->args.empty()) {
+                throw std::runtime_error("Missing port for listen");
+            }
+            for (size_t i = 0; i < it->args.size(); ++i) {
+                std::string addr = i == 0 ? "0.0.0.0" : it->args[i-1];
+                int port = atoi(it->args[i].c_str());
+                config.listen[addr] = port;
+            }
+        } else if (it->name == "server_name") {
+            config.serverNames = it->args;
+        } else if (it->name == "root") {
+            if (it->args.size() != 1) {
+                throw std::runtime_error("Invalid root directive");
+            }
+            config.root = it->args[0];
+        } else if (it->name == "client_max_body_size") {
+            std::stringstream ss(it->args[0]);
+            ss >> config.clientMaxBody;
+        }
+        // allow_methods
+        // index
+        // error_page
+        // and more
+    }
+}
+
 void ConfigParser::_parseServerContext(const Context& serverContext) {
     ServerConfig config;
     
-    // 1. Process server-level parameters
     if (!serverContext.parameters.empty()) {
         throw std::runtime_error("Server context doesn't accept parameters");
     }
 
-    // 2. Process directives
     _processDirectives(serverContext, config);
 
-    // 3. Process nested locations
-    for (std::vector<Context>::const_iterator it = serverContext.children.begin();
-         it != serverContext.children.end(); ++it) {
+    for (std::vector<Context>::const_iterator it = serverContext.children.begin(); it != serverContext.children.end(); ++it) {
         if (it->name == "location") {
             config.locations.push_back(_parseLocationContext(*it));
         }
@@ -94,69 +149,23 @@ void ConfigParser::_parseServerContext(const Context& serverContext) {
     _serverConfig = config;
 }
 
-LocationConfig ConfigParser::_parseLocationContext(const Context& locationContext) {
-    LocationConfig location;
-    
-    // 1. Extract location path
-    if (locationContext.parameters.empty()) {
-        throw std::runtime_error("Location block missing path parameter");
-    }
-    location.prefix = locationContext.parameters[0];
-
-    // 2. Process location directives
-    for (std::vector<Directive>::const_iterator it = locationContext.directives.begin();
-         it != locationContext.directives.end(); ++it) {
-        if (it->name == "root") {
-            if (it->args.size() != 1) throw std::runtime_error("Invalid root directive");
-            location.root = it->args[0];
-        }
-        else if (it->name == "allow_methods") {
-            location.methods = it->args;
-        }
-        // Add other location directives...
-    }
-
-    return location;
-}
-
-void ConfigParser::_processDirectives(const Context& context, ServerConfig& config) {
-    for (std::vector<Directive>::const_iterator it = context.directives.begin();
-         it != context.directives.end(); ++it) {
-        
-        if (it->name == "listen") {
-            if (it->args.empty()) throw std::runtime_error("Missing port for listen");
-            for (size_t i = 0; i < it->args.size(); ++i) {
-                std::string addr = i == 0 ? "0.0.0.0" : it->args[i-1];
-                int port = atoi(it->args[i].c_str());
-                config.listen[addr] = port;
-            }
-        }
-        else if (it->name == "server_name") {
-            config.serverNames = it->args;
-        }
-        else if (it->name == "root") {
-            if (it->args.size() != 1) throw std::runtime_error("Invalid root directive");
-            config.root = it->args[0];
-        }
-        else if (it->name == "client_max_body_size") {
-            std::stringstream ss(it->args[0]);
-            ss >> config.clientMaxBody;
-        }
-        // Add other server directives...
-    }
-}
-
 void ConfigParser::_validateServerContext(const Context& context) {
     if (context.name != "server") {
         throw std::runtime_error("Unexpected context type: " + context.name);
     }
     
     bool hasListen = false;
-    for (std::vector<Directive>::const_iterator it = context.directives.begin();
-         it != context.directives.end(); ++it) {
-        if (it->name == "listen") hasListen = true;
+    for (std::vector<Directive>::const_iterator it = context.directives.begin(); it != context.directives.end(); ++it) {
+        if (it->name == "listen") {
+            hasListen = true;
+        }
     }
     
+    // server_name
+    // root
+    // maybe client_max_body_size
+    // more if needed
+
     if (!hasListen) {
         throw std::runtime_error("Server block missing required listen directive");
     }
