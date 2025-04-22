@@ -106,12 +106,31 @@ void ConfigParser::_processDirectives(const Context& context, ServerConfig& conf
         
         if (it->name == "listen") {
             if (it->args.empty()) {
-                throw std::runtime_error("Missing port for listen");
+                throw std::runtime_error("Missing argument for listen directive");
             }
+        
             for (size_t i = 0; i < it->args.size(); ++i) {
-                std::string addr = i == 0 ? "0.0.0.0" : it->args[i-1];
-                int port = atoi(it->args[i].c_str());
-                config.listen[addr] = port;
+                std::string addr = "0.0.0.0"; // default IP
+                std::string port_str = "80";  // default port
+                size_t colon_pos = it->args[i].find_last_of(':');
+        
+                if (colon_pos != std::string::npos) {
+                    addr = it->args[i].substr(0, colon_pos);
+                    port_str = it->args[i].substr(colon_pos + 1);
+        
+                    if (addr.size() >= 2 && addr.front() == '[' && addr.back() == ']') {
+                        addr = addr.substr(1, addr.size() - 2);
+                    }
+                } else {
+                    port_str = it->args[i];
+                }
+        
+                char* end;
+                long port = std::strtol(port_str.c_str(), &end, 10);
+                if (*end != '\0' || port < 1 || port > 65535) {
+                    throw std::runtime_error("Invalid port in listen directive: " + port_str);
+                }
+                config.listen[addr] = static_cast<int>(port);
             }
         } else if (it->name == "server_name") {
             config.serverNames = it->args;
