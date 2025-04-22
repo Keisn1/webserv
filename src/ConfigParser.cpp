@@ -123,6 +123,25 @@ void ConfigParser::_processDirectives(const Context& context, ServerConfig& conf
         } else if (it->name == "client_max_body_size") {
             std::stringstream ss(it->args[0]);
             ss >> config.clientMaxBody;
+            
+            if (it->args.size() == 2) {
+                if (it->args[1].size() == 1) {
+                    char unit = std::tolower(it->args[1][0]);
+                    if (unit == 'k') {
+                        config.clientMaxBody *= 1024;
+                    } else if (unit == 'm') {
+                        config.clientMaxBody *= 1024 * 1024;
+                    } else if (unit == 'g') {
+                        config.clientMaxBody *= 1024 * 1024 * 1024;
+                    } else if (isalpha(it->args[0].back())) {
+                        throw std::runtime_error("Invalid client_max_body_size value");
+                    }
+                } else {
+                    throw std::runtime_error("Invalid client_max_body_size value");
+                }
+            } else if (it->args.size() > 2) {
+                throw std::runtime_error("Invalid client_max_body_size value");
+            }
         }
         // allow_methods
         // index
@@ -149,26 +168,29 @@ void ConfigParser::_parseServerContext(const Context& serverContext) {
     _serverConfig = config;
 }
 
+bool findDirective(const Context& context, const std::string& identifierKey) {
+    for (std::vector<Directive>::const_iterator it = context.directives.begin(); it != context.directives.end(); ++it) {
+        if (it->name == identifierKey) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void ConfigParser::_validateServerContext(const Context& context) {
     if (context.name != "server") {
         throw std::runtime_error("Unexpected context type: " + context.name);
     }
-    
-    bool hasListen = false;
-    for (std::vector<Directive>::const_iterator it = context.directives.begin(); it != context.directives.end(); ++it) {
-        if (it->name == "listen") {
-            hasListen = true;
-        }
-    }
-    
-    // server_name
-    // root
-    // maybe client_max_body_size
-    // more if needed
-
-    if (!hasListen) {
+    if (!findDirective(context, "listen")) {
         throw std::runtime_error("Server block missing required listen directive");
     }
+    if (!findDirective(context, "server_name")) {
+        throw std::runtime_error("Server block missing required server_name directive");
+    }
+    if (!findDirective(context, "root")) {
+        throw std::runtime_error("Server block missing required root directive");
+    }
+    // more if needed
 }
 
 void ConfigParser::_makeServerConfig() {

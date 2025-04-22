@@ -23,10 +23,10 @@ void TokenStream::_tokenize() {
         } else if (c == '#') {                                              // comments
             while (_pos < _text.size() && _text[_pos] != '\n')
                 _advance();
-        } else if (isalpha(c) || c == '_' || c == '/' || c == '.') {        // identifier
+        } else if (isalpha(c) || c == '_' || c == '/' || c == '.' || c == ':' || c == '[' || c == ']') {        // identifier
             int startCol = _col;
             std::string val;
-            while (_pos < _text.size() && (isalnum(_text[_pos]) || _text[_pos] == '_' || _text[_pos] == '/' || _text[_pos] == '.')) {
+            while (_pos < _text.size() && (isalnum(_text[_pos]) || _text[_pos] == '_' || _text[_pos] == '/' || _text[_pos] == '.' || _text[_pos] == ':' || _text[_pos] == '[' || _text[_pos] == ']')) {
                 val += _text[_pos];
                 _advance();
             }
