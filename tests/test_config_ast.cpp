@@ -13,7 +13,7 @@ TEST(ASTTest, ParsesSingleServerBlock) {
     file << "server {\n"
          << "    listen 80;\n"
          << "    root /var/www/html;\n"
-         << "    server_name example.com;\n"  // Added mandatory server_name
+         << "    server_name example.com;\n"
          << "}\n";
     file.close();
     Context root = buildAST("configTest");
@@ -38,8 +38,8 @@ TEST(ASTTest, ParsesNestedLocation) {
     file.open("configTest");
     file << "server {\n"
          << "    listen 8080;\n"
-         << "    root /var/www/html;\n"       // Added mandatory root
-         << "    server_name example.com;\n"  // Added mandatory server_name
+         << "    root /var/www/html;\n"
+         << "    server_name example.com;\n"
          << "    location /images/ {\n"
          << "        root /var/www/images;\n"
          << "    }\n"
@@ -69,7 +69,7 @@ TEST(ASTTest, IgnoresCommentsAndWhitespace) {
          << "    listen    3000;   \n"
          << "    # another comment\n"
          << "    root    \"/srv/www\";\n"
-         << "    server_name example.com;\n"  // Added mandatory server_name
+         << "    server_name example.com;\n" 
          << "}\n";
     file.close();
     Context root = buildAST("configTest");
@@ -187,7 +187,7 @@ TEST(ASTTest, HandlesMixedDirectivesAndBlocks) {
     file.open("configTest");
     file << "server {\n"
          << "    listen 80;\n"
-         << "    server_name example.com;\n"  // Added mandatory server_name
+         << "    server_name example.com;\n"
          << "    location / {\n"
          << "        index index.html;\n"
          << "    }\n"
@@ -210,8 +210,8 @@ TEST(ASTTest, ParsesQuotedArguments) {
     std::ofstream file;
     file.open("configTest");
     file << "server {\n"
-         << "    listen 80;\n"               // Added mandatory listen
-         << "    server_name example.com;\n"  // Added mandatory server_name
+         << "    listen 80;\n"
+         << "    server_name example.com;\n"
          << "    root \"/var/www/my site\";\n"
          << "}\n";
     file.close();
@@ -231,7 +231,7 @@ TEST(ASTTest, ThrowsOnNonexistentFile) {
 
 TEST(ASTTest, HandlesEmptyFile) {
     std::ofstream file;
-    file.open("configTest");  // Empty file
+    file.open("configTest");
     file.close();
     Context root = buildAST("configTest");
     std::remove("configTest");
