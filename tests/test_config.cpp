@@ -215,3 +215,33 @@ TEST_F(ServerConfigTest, HandleIndexFilesInMultipleLocationContext) {
     EXPECT_EQ(loc2.common.indexFiles[2], "another_default.html");
 }
 
+TEST_F(ServerConfigTest, ThrowsOnInvalidHttpMethodInLocation) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+        "    listen 80;\n"
+        "    root /var/www;\n"
+        "    server_name example.com www.example.com;\n"
+        "    location /images/ {\n"
+        "        allow_methods GET SKIBIDI;\n"
+        "        index index.html index.htm default.html;\n"
+        "    }\n"
+        "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, ThrowsOnInvalidHttpMethodInServer) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+        "    listen 80;\n"
+        "    root /var/www;\n"
+        "    allow_methods GET SKIBIDI;\n"
+        "    server_name example.com www.example.com;\n"
+        "}\n"
+        ),
+        std::runtime_error
+    );
+}

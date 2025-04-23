@@ -97,9 +97,7 @@ LocationConfig ConfigParser::_parseLocationContext(const Context& locationContex
             throw std::runtime_error("Unknown directive in location context: " + it->name);
         }
     }
-    // index
     // autoindex
-    // root
     // cgi_path
     // cgi_ext
     // maybe more
@@ -126,7 +124,6 @@ void ConfigParser::_processServerDirectives(const Context& context, ServerConfig
         }
     }
 
-    // index
     // error_page
     // and more
 }
