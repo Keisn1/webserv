@@ -29,7 +29,7 @@ TEST_F(ServerConfigTest, BasicServerConfiguration) {
     EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
     ASSERT_EQ(config.serverNames.size(), 1);
     EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.root, "/var/www/html");
+    EXPECT_EQ(config.common.root, "/var/www/html");
     EXPECT_TRUE(config.locations.empty());
 }
 
@@ -49,12 +49,12 @@ TEST_F(ServerConfigTest, ServerWithLocationBlock) {
     EXPECT_EQ(config.listen.at("0.0.0.0"), 8080);
     ASSERT_EQ(config.serverNames.size(), 1);
     EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.root, "/var/www/html");
+    EXPECT_EQ(config.common.root, "/var/www/html");
     ASSERT_EQ(config.locations.size(), 1);
     const LocationConfig& loc = config.locations[0];
     EXPECT_EQ(loc.prefix, "/images/");
-    EXPECT_EQ(loc.root, "/var/www/images");
-    ASSERT_THAT(loc.methods, testing::ElementsAre("GET", "HEAD"));
+    EXPECT_EQ(loc.common.root, "/var/www/images");
+    ASSERT_THAT(loc.common.allowMethods, testing::ElementsAre("GET", "HEAD"));
 }
 
 TEST_F(ServerConfigTest, HandlesClientMaxBodySize) {
@@ -69,8 +69,8 @@ TEST_F(ServerConfigTest, HandlesClientMaxBodySize) {
 
     EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
     EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.root, "/var/www/html");
-    EXPECT_EQ(config.clientMaxBody, 10 * 1024 * 1024);
+    EXPECT_EQ(config.common.root, "/var/www/html");
+    EXPECT_EQ(config.common.clientMaxBody, 10 * 1024 * 1024);
 }
 
 TEST_F(ServerConfigTest, MultipleListenDirectives) {
@@ -84,7 +84,7 @@ TEST_F(ServerConfigTest, MultipleListenDirectives) {
     );
 
     EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.root, "/var/www/html");
+    EXPECT_EQ(config.common.root, "/var/www/html");
     EXPECT_EQ(config.listen.at("127.0.0.1"), 80);
     EXPECT_EQ(config.listen.at("::1"), 80);
 }
@@ -129,8 +129,89 @@ TEST_F(ServerConfigTest, HandlesMultipleServerNames) {
     );
 
     EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
-    EXPECT_EQ(config.root, "/var/www");
+    EXPECT_EQ(config.common.root, "/var/www");
     ASSERT_EQ(config.serverNames.size(), 2);
     EXPECT_EQ(config.serverNames[0], "example.com");
     EXPECT_EQ(config.serverNames[1], "www.example.com");
 }
+
+TEST_F(ServerConfigTest, HandleIndexFiles) {
+    ServerConfig config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    root /var/www;\n"
+        "    server_name example.com www.example.com;\n"
+        "    index index.html index.htm default.html;\n"
+        "}\n"
+    );
+
+    EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
+    EXPECT_EQ(config.common.root, "/var/www");
+    ASSERT_EQ(config.serverNames.size(), 2);
+    EXPECT_EQ(config.serverNames[0], "example.com");
+    EXPECT_EQ(config.serverNames[1], "www.example.com");
+    ASSERT_EQ(config.common.indexFiles.size(), 3);
+    EXPECT_EQ(config.common.indexFiles[0], "index.html");
+    EXPECT_EQ(config.common.indexFiles[1], "index.htm");
+    EXPECT_EQ(config.common.indexFiles[2], "default.html");
+}
+
+TEST_F(ServerConfigTest, HandleIndexFilesInLocationContext) {
+    ServerConfig config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    root /var/www;\n"
+        "    server_name example.com www.example.com;\n"
+        "    location /images/ {\n"
+        "        index index.html index.htm default.html;\n"
+        "    }\n"
+        "}\n"
+    );
+
+    EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
+    EXPECT_EQ(config.common.root, "/var/www");
+    ASSERT_EQ(config.serverNames.size(), 2);
+    EXPECT_EQ(config.serverNames[0], "example.com");
+    EXPECT_EQ(config.serverNames[1], "www.example.com");
+    const LocationConfig& loc = config.locations[0];
+    ASSERT_EQ(loc.common.indexFiles.size(), 3);
+    EXPECT_EQ(loc.common.indexFiles[0], "index.html");
+    EXPECT_EQ(loc.common.indexFiles[1], "index.htm");
+    EXPECT_EQ(loc.common.indexFiles[2], "default.html");
+}
+
+TEST_F(ServerConfigTest, HandleIndexFilesInMultipleLocationContext) {
+    ServerConfig config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    root /var/www;\n"
+        "    server_name example.com www.example.com;\n"
+        "    location /images/ {\n"
+        "        index index.html index.htm default.html;\n"
+        "    }\n"
+        "    location /somewhere/ {\n"
+        "        index another_index.html another_index.htm another_default.html;\n"
+        "    }\n"
+        "}\n"
+    );
+
+    EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
+    EXPECT_EQ(config.common.root, "/var/www");
+    ASSERT_EQ(config.serverNames.size(), 2);
+    EXPECT_EQ(config.serverNames[0], "example.com");
+    EXPECT_EQ(config.serverNames[1], "www.example.com");
+    ASSERT_EQ(config.locations.size(), 2);
+    const LocationConfig& loc1 = config.locations[0];
+    EXPECT_EQ(loc1.prefix, "/images/");
+    ASSERT_EQ(loc1.common.indexFiles.size(), 3);
+    EXPECT_EQ(loc1.common.indexFiles[0], "index.html");
+    EXPECT_EQ(loc1.common.indexFiles[1], "index.htm");
+    EXPECT_EQ(loc1.common.indexFiles[2], "default.html");
+    const LocationConfig& loc2 = config.locations[1];
+    EXPECT_EQ(loc2.prefix, "/somewhere/");
+    ASSERT_EQ(loc2.common.indexFiles.size(), 3);
+    EXPECT_EQ(loc2.common.indexFiles[0], "another_index.html");
+    EXPECT_EQ(loc2.common.indexFiles[1], "another_index.htm");
+    EXPECT_EQ(loc2.common.indexFiles[2], "another_default.html");
+}
+

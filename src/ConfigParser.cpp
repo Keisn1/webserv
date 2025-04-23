@@ -84,101 +84,51 @@ LocationConfig ConfigParser::_parseLocationContext(const Context& locationContex
     }
     location.prefix = locationContext.parameters[0]; // magic number
 
-    for (std::vector<Directive>::const_iterator it = locationContext.directives.begin();
-         it != locationContext.directives.end(); ++it) {
+    for (std::vector<Directive>::const_iterator it = locationContext.directives.begin(); it != locationContext.directives.end(); ++it) {
         if (it->name == "root") {
-            if (it->args.size() != 1) {
-                throw std::runtime_error("Invalid root directive");
-            }
-            location.root = it->args[0];
+            _parseRoot(*it, location.common);
+        } else if (it->name == "client_max_body_size") {
+            _parseClientMaxBodySize(*it, location.common);
         } else if (it->name == "allow_methods") {
-            location.methods = it->args;
+            _parseAllowMethods(*it, location.common);
+        } else if (it->name == "index") {
+            _parseIndex(*it, location.common);
+        } else {
+            throw std::runtime_error("Unknown directive in location context: " + it->name);
         }
-        // index
-        // autoindex
-        // root
-        // cgi_path
-        // cgi_ext
-        // maybe more
     }
+    // index
+    // autoindex
+    // root
+    // cgi_path
+    // cgi_ext
+    // maybe more
 
     return location;
 }
 
-void ConfigParser::_processServerDirectives(const Context& context, ServerConfig& config) {
+void ConfigParser::_processServerDirectives(const Context& context, ServerConfig& serverConfig) {
     for (std::vector<Directive>::const_iterator it = context.directives.begin(); it != context.directives.end(); ++it) {
         if (it->name == "listen") {
-            if (it->args.empty()) {
-                throw std::runtime_error("Missing argument for listen directive");
-            }
-        
-            for (size_t i = 0; i < it->args.size(); ++i) {
-                std::string addr = "0.0.0.0"; // default IP
-                std::string port_str = "80";  // default port
-                size_t colon_pos = it->args[i].find_last_of(':');
-        
-                if (colon_pos != std::string::npos) {
-                    addr = it->args[i].substr(0, colon_pos);
-                    port_str = it->args[i].substr(colon_pos + 1);
-        
-                    if (addr.size() >= 2 && addr.front() == '[' && addr.back() == ']') {
-                        addr = addr.substr(1, addr.size() - 2);
-                    }
-                } else {
-                    port_str = it->args[i];
-                }
-        
-                char* end;
-                long port = std::strtol(port_str.c_str(), &end, 10);
-                if (*end != '\0' || port < 1 || port > 65535) {
-                    throw std::runtime_error("Invalid port in listen directive: " + port_str);
-                }
-                config.listen[addr] = static_cast<int>(port);
-            }
+            _parseListen(*it, serverConfig);
         } else if (it->name == "server_name") {
-            config.serverNames = it->args;
+            _parseServerNames(*it, serverConfig);
         } else if (it->name == "root") {
-            if (it->args.size() != 1) {
-                throw std::runtime_error("Invalid root directive");
-            }
-            config.root = it->args[0];
+            _parseRoot(*it, serverConfig.common);
         } else if (it->name == "client_max_body_size") {
-            if (it->args.size() != 1) {
-                throw std::runtime_error("client_max_body_size requires exactly one argument");
-            }
-        
-            const std::string& arg = it->args[0];
-            size_t value;
-            char unit = '\0';
-            std::size_t pos = 0;
-            try {
-                value = std::stoull(arg, &pos);
-            } catch (const std::exception&) {
-                throw std::runtime_error("Invalid client_max_body_size value: " + arg);
-            }
-        
-            if (pos < arg.size()) {
-                if (arg.size() - pos > 1) {
-                    throw std::runtime_error("Invalid unit in client_max_body_size: " + arg);
-                }
-                unit = std::tolower(arg[pos]);
-            }
-        
-            switch (unit) {
-                case 'k': value *= 1024; break;
-                case 'm': value *= 1024 * 1024; break;
-                case 'g': value *= 1024 * 1024 * 1024; break;
-                case '\0': break;
-                default:
-                    throw std::runtime_error("Invalid unit in client_max_body_size: " + std::string(1, unit));
-            }
-            config.clientMaxBody = value;
+            _parseClientMaxBodySize(*it, serverConfig.common);
+        } else if (it->name == "allow_methods") {
+            _parseAllowMethods(*it, serverConfig.common);
+        } else if (it->name == "index") {
+            _parseIndex(*it, serverConfig.common);
+        } else {
+            throw std::runtime_error("Unknown directive in server context: " + it->name);
         }
-        // allow_methods
-        // index
-        // error_page
-        // and more
     }
+
+    // index
+    // error_page
+    // and more
 }
 
 void ConfigParser::_parseServerContext(const Context& serverContext) {

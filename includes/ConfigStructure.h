@@ -1,5 +1,5 @@
-#ifndef CONFISTRUCTURE_H
-#define CONFISTRUCTURE_H
+#ifndef CONFIGSTRUCTURE_H
+#define CONFIGSTRUCTURE_H
 
 #include <map>
 #include <vector>
@@ -17,21 +17,28 @@ typedef struct Context {
   std::vector<Context> children;
 } Context;
 
+typedef struct CommonConfig {
+  std::string root;
+  std::vector<std::string> allowMethods;
+  std::vector<std::string> indexFiles;
+  size_t clientMaxBody;
+  std::map<int, std::string> errorPages;
+  // to add more
+} CommonConfig;
+
 typedef struct LocationConfig {
   std::string prefix;
-  std::string root;
-  std::vector<std::string> methods;
-  /* ...others... */
+  CommonConfig common;
+  // to add more
 } LocationConfig;
 
 typedef struct ServerConfig {
   std::map<std::string, int> listen;
   std::vector<std::string> serverNames;
-  std::string root;
-  std::vector<std::string> indexFiles;
-  size_t clientMaxBody;
+  // cgi_path
+  // cgi_ext
+  CommonConfig common;
   std::vector<LocationConfig> locations;
-  /* ...others... */
 } ServerConfig;
 
-#endif // CONFISTRUCTURE_H
+#endif // CONFIGSTRUCTURE_H
