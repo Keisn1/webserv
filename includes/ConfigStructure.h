@@ -6,15 +6,15 @@
 #include <iostream>
 
 typedef struct Directive {
-  std::string name;                   // "listen", "root", "error_page"
-  std::vector<std::string> args;      // { "80" }  or  { "/var/www", "index.html" }
+  std::string name;
+  std::vector<std::string> args;
 } Directive;
 
 typedef struct Context {
-  std::string name;                   // e.g.  "server" or "location"
+  std::string name;
   std::vector<std::string> parameters;
-  std::vector<Directive> directives;  // all directives directly inside this block
-  std::vector<Context> children;      // nested blocks (e.g. location { … })
+  std::vector<Directive> directives;
+  std::vector<Context> children;
 } Context;
 
 typedef struct LocationConfig {

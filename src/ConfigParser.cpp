@@ -1,6 +1,10 @@
 #include <ConfigParser.h>
 
-ConfigParser::ConfigParser() {};
+ConfigParser::ConfigParser(const std::string& filename) {
+    _makeAst(filename);
+    _makeServerConfig();
+};
+
 ConfigParser::~ConfigParser() {};
 IConfigParser::~IConfigParser() {};
 
@@ -101,9 +105,8 @@ LocationConfig ConfigParser::_parseLocationContext(const Context& locationContex
     return location;
 }
 
-void ConfigParser::_processDirectives(const Context& context, ServerConfig& config) {
+void ConfigParser::_processServerDirectives(const Context& context, ServerConfig& config) {
     for (std::vector<Directive>::const_iterator it = context.directives.begin(); it != context.directives.end(); ++it) {
-        
         if (it->name == "listen") {
             if (it->args.empty()) {
                 throw std::runtime_error("Missing argument for listen directive");
@@ -155,7 +158,7 @@ void ConfigParser::_processDirectives(const Context& context, ServerConfig& conf
             }
         
             if (pos < arg.size()) {
-                if (arg.size() - pos > 1) { // Only single-character units allowed
+                if (arg.size() - pos > 1) {
                     throw std::runtime_error("Invalid unit in client_max_body_size: " + arg);
                 }
                 unit = std::tolower(arg[pos]);
@@ -185,7 +188,7 @@ void ConfigParser::_parseServerContext(const Context& serverContext) {
         throw std::runtime_error("Server context doesn't accept parameters");
     }
 
-    _processDirectives(serverContext, config);
+    _processServerDirectives(serverContext, config);
 
     for (std::vector<Context>::const_iterator it = serverContext.children.begin(); it != serverContext.children.end(); ++it) {
         if (it->name == "location") {
@@ -218,7 +221,6 @@ void ConfigParser::_validateServerContext(const Context& context) {
     if (!findDirective(context, "root")) {
         throw std::runtime_error("Server block missing required root directive");
     }
-    // more if needed
 }
 
 void ConfigParser::_makeServerConfig() {
@@ -231,13 +233,10 @@ void ConfigParser::_makeServerConfig() {
     }
 }
 
-Context ConfigParser::getAst(const std::string& filename) {
-    _makeAst(filename);
+Context ConfigParser::getAst() {
     return _ast;
 }
 
-ServerConfig ConfigParser::getServerConfig(const std::string& filename) {
-    _makeAst(filename);
-    _makeServerConfig();
+ServerConfig ConfigParser::getServerConfig() {
     return _serverConfig;
 }

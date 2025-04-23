@@ -12,8 +12,8 @@ protected:
         std::ofstream file("configTest");
         file << content;
         file.close();
-        ConfigParser parser;
-        return parser.getServerConfig("configTest");
+        ConfigParser parser("configTest");
+        return parser.getServerConfig();
     }
 };
 

@@ -3,16 +3,17 @@
 #include <gmock/gmock.h>
 
 Context buildAST(const std::string& config) {
-    ConfigParser parser;
-    return parser.getAst(config);
+    ConfigParser parser(config);
+    return parser.getAst();
 }
 
 TEST(ASTTest, ParsesSingleServerBlock) {
     std::ofstream file;
     file.open("configTest");
-    file <<  "server {\n"
+    file << "server {\n"
          << "    listen 80;\n"
          << "    root /var/www/html;\n"
+         << "    server_name example.com;\n"  // Added mandatory server_name
          << "}\n";
     file.close();
     Context root = buildAST("configTest");
@@ -21,12 +22,14 @@ TEST(ASTTest, ParsesSingleServerBlock) {
     ASSERT_EQ(root.children.size(), 1);
     const Context& server = root.children[0];
     EXPECT_EQ(server.name, "server");
-    ASSERT_EQ(server.directives.size(), 2);
+    ASSERT_EQ(server.directives.size(), 3);
     EXPECT_EQ(server.directives[0].name, "listen");
     EXPECT_EQ(server.directives[0].args.size(), 1);
     EXPECT_EQ(server.directives[0].args[0], "80");
     EXPECT_EQ(server.directives[1].name, "root");
     EXPECT_EQ(server.directives[1].args[0], "/var/www/html");
+    EXPECT_EQ(server.directives[2].name, "server_name");
+    EXPECT_EQ(server.directives[2].args[0], "example.com");
     EXPECT_TRUE(server.children.empty());
 }
 
@@ -35,6 +38,8 @@ TEST(ASTTest, ParsesNestedLocation) {
     file.open("configTest");
     file << "server {\n"
          << "    listen 8080;\n"
+         << "    root /var/www/html;\n"       // Added mandatory root
+         << "    server_name example.com;\n"  // Added mandatory server_name
          << "    location /images/ {\n"
          << "        root /var/www/images;\n"
          << "    }\n"
@@ -46,7 +51,7 @@ TEST(ASTTest, ParsesNestedLocation) {
     ASSERT_EQ(root.children.size(), 1);
     const Context& server = root.children[0];
     ASSERT_EQ(server.name, "server");
-    ASSERT_EQ(server.directives.size(), 1);
+    ASSERT_EQ(server.directives.size(), 3);
     EXPECT_EQ(server.directives[0].name, "listen");
     ASSERT_EQ(server.children.size(), 1);
     const Context& loc = server.children[0];
@@ -64,6 +69,7 @@ TEST(ASTTest, IgnoresCommentsAndWhitespace) {
          << "    listen    3000;   \n"
          << "    # another comment\n"
          << "    root    \"/srv/www\";\n"
+         << "    server_name example.com;\n"  // Added mandatory server_name
          << "}\n";
     file.close();
     Context root = buildAST("configTest");
@@ -71,26 +77,66 @@ TEST(ASTTest, IgnoresCommentsAndWhitespace) {
 
     ASSERT_EQ(root.children.size(), 1);
     const Context& server = root.children[0];
-    ASSERT_EQ(server.directives.size(), 2);
+    ASSERT_EQ(server.directives.size(), 3);
     EXPECT_EQ(server.directives[0].name, "listen");
     EXPECT_EQ(server.directives[0].args[0], "3000");
     EXPECT_EQ(server.directives[1].name, "root");
     EXPECT_EQ(server.directives[1].args[0], "/srv/www");
+    EXPECT_EQ(server.directives[2].name, "server_name");
+    EXPECT_EQ(server.directives[2].args[0], "example.com");
 }
 
-TEST(ASTTest, HandlesEmptyBlock) {
+TEST(ASTTest, ThrowsOnMissingListen) {
+    std::ofstream file;
+    file.open("configTest");
+    file << "server {\n"
+         << "    root /var/www/html;\n"
+         << "    server_name example.com;\n"
+         << "}\n";
+    file.close();
+    EXPECT_THROW({
+        Context root = buildAST("configTest");
+    }, std::runtime_error);
+    std::remove("configTest");
+}
+
+TEST(ASTTest, ThrowsOnMissingRoot) {
+    std::ofstream file;
+    file.open("configTest");
+    file << "server {\n"
+         << "    listen 80;\n"
+         << "    server_name example.com;\n"
+         << "}\n";
+    file.close();
+    EXPECT_THROW({
+        Context confiroot = buildAST("configTest");
+    }, std::runtime_error);
+    std::remove("configTest");
+}
+
+TEST(ASTTest, ThrowsOnMissingServerName) {
+    std::ofstream file;
+    file.open("configTest");
+    file << "server {\n"
+         << "    listen 80;\n"
+         << "    root /var/www/html;\n"
+         << "}\n";
+    file.close();
+    EXPECT_THROW({
+        Context confiroot = buildAST("configTest");
+    }, std::runtime_error);
+    std::remove("configTest");
+}
+
+TEST(ASTTest, ThrowsOnEmptyBlock) {
     std::ofstream file;
     file.open("configTest");
     file << "server {}\n";
     file.close();
-    Context root = buildAST("configTest");
+    EXPECT_THROW({
+        Context confiroot = buildAST("configTest");
+    }, std::runtime_error);
     std::remove("configTest");
-
-    ASSERT_EQ(root.children.size(), 1);
-    const Context& server = root.children[0];
-    EXPECT_EQ(server.name, "server");
-    EXPECT_TRUE(server.directives.empty());
-    EXPECT_TRUE(server.children.empty());
 }
 
 TEST(ASTTest, ThrowsOnMissingSemicolon) {
@@ -98,9 +144,10 @@ TEST(ASTTest, ThrowsOnMissingSemicolon) {
     file.open("configTest");
     file << "server {\n"
          << "    listen 80\n"
+         << "    root /var/www/html;\n"
+         << "    server_name example.com;\n"
          << "}\n";
     file.close();
-    
     EXPECT_THROW({
         Context root = buildAST("configTest");
     }, std::runtime_error);
@@ -111,9 +158,10 @@ TEST(ASTTest, ThrowsOnUnclosedBlock) {
     std::ofstream file;
     file.open("configTest");
     file << "server {\n"
-         << "    listen 80;\n";
+         << "    listen 80;\n"
+         << "    root /var/www/html;\n"
+         << "    server_name example.com;\n";
     file.close();
-    
     EXPECT_THROW({
         Context root = buildAST("configTest");
     }, std::runtime_error);
@@ -123,8 +171,8 @@ TEST(ASTTest, ThrowsOnUnclosedBlock) {
 TEST(ASTTest, ParsesMultipleTopLevelBlocks) {
     std::ofstream file;
     file.open("configTest");
-    file << "server { listen 80; }\n"
-         << "server { listen 8080; }\n";
+    file << "server { listen 80; root /var/www; server_name example.com; }\n"
+         << "server { listen 8080; root /var/www; server_name test.com; }\n";
     file.close();
     Context root = buildAST("configTest");
     std::remove("configTest");
@@ -139,6 +187,7 @@ TEST(ASTTest, HandlesMixedDirectivesAndBlocks) {
     file.open("configTest");
     file << "server {\n"
          << "    listen 80;\n"
+         << "    server_name example.com;\n"  // Added mandatory server_name
          << "    location / {\n"
          << "        index index.html;\n"
          << "    }\n"
@@ -149,9 +198,10 @@ TEST(ASTTest, HandlesMixedDirectivesAndBlocks) {
     std::remove("configTest");
 
     const Context& server = root.children[0];
-    ASSERT_EQ(server.directives.size(), 2);
+    ASSERT_EQ(server.directives.size(), 3);
     EXPECT_EQ(server.directives[0].name, "listen");
-    EXPECT_EQ(server.directives[1].name, "root");
+    EXPECT_EQ(server.directives[1].name, "server_name");
+    EXPECT_EQ(server.directives[2].name, "root");
     ASSERT_EQ(server.children.size(), 1);
     EXPECT_EQ(server.children[0].directives[0].name, "index");
 }
@@ -160,6 +210,8 @@ TEST(ASTTest, ParsesQuotedArguments) {
     std::ofstream file;
     file.open("configTest");
     file << "server {\n"
+         << "    listen 80;\n"               // Added mandatory listen
+         << "    server_name example.com;\n"  // Added mandatory server_name
          << "    root \"/var/www/my site\";\n"
          << "}\n";
     file.close();
@@ -167,8 +219,8 @@ TEST(ASTTest, ParsesQuotedArguments) {
     std::remove("configTest");
 
     const Context& server = root.children[0];
-    ASSERT_EQ(server.directives.size(), 1);
-    EXPECT_EQ(server.directives[0].args[0], "/var/www/my site");
+    ASSERT_EQ(server.directives.size(), 3);
+    EXPECT_EQ(server.directives[2].args[0], "/var/www/my site");
 }
 
 TEST(ASTTest, ThrowsOnNonexistentFile) {
@@ -181,7 +233,6 @@ TEST(ASTTest, HandlesEmptyFile) {
     std::ofstream file;
     file.open("configTest");  // Empty file
     file.close();
-    
     Context root = buildAST("configTest");
     std::remove("configTest");
     EXPECT_TRUE(root.children.empty());
