@@ -5,14 +5,14 @@
 class ServerConfigTest : public ::testing::Test {
 protected:
     void TearDown() override {
-        std::remove("configTest");
+        std::remove("configTest.conf");
     }
 
     std::vector<ServerConfig> parseConfig(const std::string& content) {
-        std::ofstream file("configTest");
+        std::ofstream file("configTest.conf");
         file << content;
         file.close();
-        ConfigParser parser("configTest");
+        ConfigParser parser("configTest.conf");
         return parser.getServersConfig();
     }
 };

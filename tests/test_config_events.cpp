@@ -5,14 +5,14 @@
 class EventsConfigTest : public ::testing::Test {
 protected:
     void TearDown() override {
-        std::remove("configTest");
+        std::remove("configTest.conf");
     }
 
     EventsConfig parseConfig(const std::string& content) {
-        std::ofstream file("configTest");
+        std::ofstream file("configTest.conf");
         file << content;
         file.close();
-        ConfigParser parser("configTest");
+        ConfigParser parser("configTest.conf");
         return parser.getEventsConfig();
     }
 };
@@ -32,12 +32,12 @@ TEST_F(EventsConfigTest, EventsCheck) {
 TEST_F(EventsConfigTest, ValidEventsConfiguration) {
     EventsConfig config = parseConfig(
         "events {\n"
-        "    worker_connections 2048;\n"
+        "    worker_connections 512;\n"
         "    use kqueue;\n"
         "}\n"
     );
 
-    EXPECT_EQ(config.maxEvents, 2048);
+    EXPECT_EQ(config.maxEvents, 512);
     EXPECT_EQ(config.kernelMethod, "kqueue");
 }
 
@@ -68,7 +68,7 @@ TEST_F(EventsConfigTest, MissingSemicolon) {
     EXPECT_THROW(
         parseConfig(
             "events {\n"
-            "    worker_connections 1024\n"  // Missing ;
+            "    worker_connections 1024\n"
             "}\n"
         ),
         std::runtime_error
@@ -97,27 +97,38 @@ TEST_F(EventsConfigTest, NegativeWorkerConnections) {
     );
 }
 
+TEST_F(EventsConfigTest, ExceedMaximumWorkerConnections) {
+    EXPECT_THROW(
+        parseConfig(
+            "events {\n"
+            "    worker_connections 1025;\n"
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
 TEST_F(EventsConfigTest, MultipleWorkerConnections) {
     EventsConfig config = parseConfig(
         "events {\n"
         "    worker_connections 1024;\n"
-        "    worker_connections 2048;\n"  // Last one should win
+        "    worker_connections 512;\n"
         "}\n"
     );
 
-    EXPECT_EQ(config.maxEvents, 2048);
+    EXPECT_EQ(config.maxEvents, 512);
 }
 
 TEST_F(EventsConfigTest, CommentsAndWhitespace) {
     EventsConfig config = parseConfig(
         "events {\n"
         "    # Important comment\n"
-        "    worker_connections    4096   ;  \n"
+        "    worker_connections    512   ;  \n"
         "    use   epoll ;  \n"
         "}\n"
     );
 
-    EXPECT_EQ(config.maxEvents, 4096);
+    EXPECT_EQ(config.maxEvents, 512);
     EXPECT_EQ(config.kernelMethod, "epoll");
 }
 
@@ -125,7 +136,7 @@ TEST_F(EventsConfigTest, UnclosedEventsBlock) {
     EXPECT_THROW(
         parseConfig(
             "events {\n"
-            "    worker_connections 1024;\n"  // Missing }
+            "    worker_connections 1024;\n"
         ),
         std::runtime_error
     );
@@ -135,7 +146,7 @@ TEST_F(EventsConfigTest, MultipleEventsBlocks) {
     EXPECT_THROW(
         parseConfig(
             "events { worker_connections 1024; }\n"
-            "events { worker_connections 2048; }\n"  // Duplicate
+            "events { worker_connections 512; }\n"
         ),
         std::runtime_error
     );

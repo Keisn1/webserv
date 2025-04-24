@@ -1,12 +1,19 @@
 #include <ConfigParser.h>
 
 ConfigParser::ConfigParser(const std::string& filename) {
+    _validateFilename(filename);
     _makeAst(filename);
     _makeConfig();
 };
 
 ConfigParser::~ConfigParser() {};
 IConfigParser::~IConfigParser() {};
+
+void ConfigParser::_validateFilename(const std::string& filename) {
+    if (filename.size() <= 5 || filename.find(".conf") == std::string::npos) {
+        throw std::runtime_error("Invalid file name");
+    }
+}
 
 void parseDirectiveOrBlock(TokenStream& tokenStream, Context& currentBlock) {
     if (!tokenStream.hasMore()) {
@@ -153,6 +160,10 @@ void ConfigParser::_parseEventsContext(const Context& eventsContext) {
                 throw std::runtime_error("worker_connections requires exactly one argument");
             }
             _eventsConfig.maxEvents = static_cast<size_t>(std::strtoul(it->args[0].c_str(), NULL, 10));
+
+            if (_eventsConfig.maxEvents > MAX_WORKER_CONNECTIONS) {
+                throw std::runtime_error("worker_connections exceeded the maximum value");
+            }
         } else if (it->name == "use") {
             if (it->args.size() != 1) {
                 throw std::runtime_error("use requires exactly one argument");
