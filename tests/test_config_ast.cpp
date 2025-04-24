@@ -237,3 +237,46 @@ TEST(ASTTest, HandlesEmptyFile) {
     std::remove("configTest");
     EXPECT_TRUE(root.children.empty());
 }
+
+TEST(ASTTest, MultipleServers) {
+    std::ofstream file;
+    file.open("configTest");
+    file << "server {\n"
+         << "    listen 80;\n"
+         << "    root /var/www/html;\n"
+         << "    server_name example.com;\n"
+         << "}\n"
+         << "\n"
+         << "server {\n"
+         << "    listen 81;\n"
+         << "    root /var/www/htmn;\n"
+         << "    server_name example2.com;\n"
+         << "}\n";
+    file.close();
+    Context root = buildAST("configTest");
+    std::remove("configTest");
+
+    ASSERT_EQ(root.children.size(), 2);
+    const Context& server1 = root.children[0];
+    EXPECT_EQ(server1.name, "server");
+    ASSERT_EQ(server1.directives.size(), 3);
+    EXPECT_EQ(server1.directives[0].name, "listen");
+    EXPECT_EQ(server1.directives[0].args.size(), 1);
+    EXPECT_EQ(server1.directives[0].args[0], "80");
+    EXPECT_EQ(server1.directives[1].name, "root");
+    EXPECT_EQ(server1.directives[1].args[0], "/var/www/html");
+    EXPECT_EQ(server1.directives[2].name, "server_name");
+    EXPECT_EQ(server1.directives[2].args[0], "example.com");
+    EXPECT_TRUE(server1.children.empty());
+    const Context& server2 = root.children[1];
+    EXPECT_EQ(server2.name, "server");
+    ASSERT_EQ(server2.directives.size(), 3);
+    EXPECT_EQ(server2.directives[0].name, "listen");
+    EXPECT_EQ(server2.directives[0].args.size(), 1);
+    EXPECT_EQ(server2.directives[0].args[0], "81");
+    EXPECT_EQ(server2.directives[1].name, "root");
+    EXPECT_EQ(server2.directives[1].args[0], "/var/www/htmn");
+    EXPECT_EQ(server2.directives[2].name, "server_name");
+    EXPECT_EQ(server2.directives[2].args[0], "example2.com");
+    EXPECT_TRUE(server2.children.empty());
+}
