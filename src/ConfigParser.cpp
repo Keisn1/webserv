@@ -89,7 +89,10 @@ LocationConfig ConfigParser::_parseLocationContext(const Context& locationContex
     if (locationContext.parameters.empty()) {
         throw std::runtime_error("Location block missing path parameter");
     }
-    location.prefix = locationContext.parameters[0]; // magic number
+
+    for (size_t i = 0; i < locationContext.parameters.size(); ++i) {
+        location.prefix.append(locationContext.parameters[i]);
+    }
 
     for (std::vector<Directive>::const_iterator it = locationContext.directives.begin(); it != locationContext.directives.end(); ++it) {
         if (it->name == "root") {
