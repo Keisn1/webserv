@@ -17,6 +17,11 @@ typedef struct Context {
   std::vector<Context> children;
 } Context;
 
+typedef struct EventsConfig {
+  size_t maxEvents;
+  std::string kernelMethod;
+} EventsConfig;
+
 typedef struct CommonConfig {
   std::string root;
   std::vector<std::string> allowMethods;

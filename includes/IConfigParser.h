@@ -6,6 +6,7 @@
 class IConfigParser {
   public:
     virtual ~IConfigParser();
+    virtual EventsConfig getEventsConfig() = 0;
     virtual std::vector<ServerConfig> getServersConfig() = 0;
 };
 

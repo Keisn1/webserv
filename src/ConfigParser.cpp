@@ -2,7 +2,7 @@
 
 ConfigParser::ConfigParser(const std::string& filename) {
     _makeAst(filename);
-    _makeServerConfig();
+    _makeConfig();
 };
 
 ConfigParser::~ConfigParser() {};
@@ -144,6 +144,29 @@ void ConfigParser::_parseServerContext(const Context& serverContext) {
     _serversConfig.push_back(config);
 }
 
+void ConfigParser::_parseEventsContext(const Context& eventsContext) {
+    _eventsConfig.maxEvents = DEFAULT_WORKER_CONNECTIONS;
+    _eventsConfig.kernelMethod = DEFAULT_USE;
+    for (std::vector<Directive>::const_iterator it = eventsContext.directives.begin(); it != eventsContext.directives.end(); ++it) {
+        if (it->name == "worker_connections") {
+            if (it->args.size() != 1) {
+                throw std::runtime_error("worker_connections requires exactly one argument");
+            }
+            _eventsConfig.maxEvents = static_cast<size_t>(std::strtoul(it->args[0].c_str(), NULL, 10));
+        } else if (it->name == "use") {
+            if (it->args.size() != 1) {
+                throw std::runtime_error("use requires exactly one argument");
+            }
+            if (it->args[0] != "select" && it->args[0] != "poll" && it->args[0] != "epoll" && it->args[0] != "kqueue") {
+                throw std::runtime_error("Unknown use method: " + it->name);
+            }
+            _eventsConfig.kernelMethod = it->args[0];
+        } else {
+            throw std::runtime_error("Unknown directive in events context: " + it->name);
+        }
+    }
+}
+
 bool findDirective(const Context& context, const std::string& identifierKey) {
     for (std::vector<Directive>::const_iterator it = context.directives.begin(); it != context.directives.end(); ++it) {
         if (it->name == identifierKey) {
@@ -156,29 +179,34 @@ bool findDirective(const Context& context, const std::string& identifierKey) {
 void ConfigParser::_validateServerContext(const Context& context) {
     if (context.name != "server") {
         throw std::runtime_error("Unexpected context type: " + context.name);
-    }
-    if (!findDirective(context, "listen")) {
+    } else if (!findDirective(context, "listen")) {
         throw std::runtime_error("Server block missing required listen directive");
-    }
-    if (!findDirective(context, "server_name")) {
+    } else if (!findDirective(context, "server_name")) {
         throw std::runtime_error("Server block missing required server_name directive");
-    }
-    if (!findDirective(context, "root")) {
+    } else if (!findDirective(context, "root")) {
         throw std::runtime_error("Server block missing required root directive");
     }
 }
 
-void ConfigParser::_makeServerConfig() {
+void ConfigParser::_makeConfig() {
     for (std::vector<Context>::const_iterator it = _ast.children.begin(); it != _ast.children.end(); ++it) {
         if (it->name == "server") {
             _validateServerContext(*it);
             _parseServerContext(*it);
+        } else if (it->name == "events" && _eventsConfig.kernelMethod.empty()) {
+            _parseEventsContext(*it);
+        } else {
+            throw std::runtime_error("Invalid context block: " + it->name);
         }
     }
 }
 
 Context ConfigParser::getAst() {
     return _ast;
+}
+
+EventsConfig ConfigParser::getEventsConfig() {
+    return _eventsConfig;
 }
 
 std::vector<ServerConfig> ConfigParser::getServersConfig() {
