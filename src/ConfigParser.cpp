@@ -141,7 +141,7 @@ void ConfigParser::_parseServerContext(const Context& serverContext) {
         }
     }
 
-    _serverConfig.push_back(config);
+    _serversConfig.push_back(config);
 }
 
 bool findDirective(const Context& context, const std::string& identifierKey) {
@@ -182,5 +182,5 @@ Context ConfigParser::getAst() {
 }
 
 std::vector<ServerConfig> ConfigParser::getServersConfig() {
-    return _serverConfig;
+    return _serversConfig;
 }

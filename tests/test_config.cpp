@@ -245,3 +245,51 @@ TEST_F(ServerConfigTest, ThrowsOnInvalidHttpMethodInServer) {
         std::runtime_error
     );
 }
+
+
+TEST_F(ServerConfigTest, HandleMultipleServerContextWithLocationsInside) {
+    std::vector<ServerConfig> config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    root /var/www;\n"
+        "    server_name example.com www.example.com;\n"
+        "    location /images/ {\n"
+        "        index index.html index.htm default.html;\n"
+        "    }\n"
+        "}\n"
+        "server {\n"
+        "    listen 81;\n"
+        "    root /car/www;\n"
+        "    server_name nexample.com www.nexample.com;\n"
+        "    location /nimages/ {\n"
+        "        index pindex.html pindex.htm pefault.html;\n"
+        "    }\n"
+        "}\n"
+    );
+
+    EXPECT_EQ(config[0].listen.at("0.0.0.0"), 80);
+    EXPECT_EQ(config[0].common.root, "/var/www");
+    ASSERT_EQ(config[0].serverNames.size(), 2);
+    EXPECT_EQ(config[0].serverNames[0], "example.com");
+    EXPECT_EQ(config[0].serverNames[1], "www.example.com");
+    ASSERT_EQ(config[0].locations.size(), 1);
+    const LocationConfig& loc1 = config[0].locations[0];
+    EXPECT_EQ(loc1.prefix, "/images/");
+    ASSERT_EQ(loc1.common.indexFiles.size(), 3);
+    EXPECT_EQ(loc1.common.indexFiles[0], "index.html");
+    EXPECT_EQ(loc1.common.indexFiles[1], "index.htm");
+    EXPECT_EQ(loc1.common.indexFiles[2], "default.html");
+    
+    EXPECT_EQ(config[1].listen.at("0.0.0.0"), 81);
+    EXPECT_EQ(config[1].common.root, "/car/www");
+    ASSERT_EQ(config[1].serverNames.size(), 2);
+    EXPECT_EQ(config[1].serverNames[0], "nexample.com");
+    EXPECT_EQ(config[1].serverNames[1], "www.nexample.com");
+    ASSERT_EQ(config[1].locations.size(), 1);
+    const LocationConfig& loc2 = config[1].locations[0];
+    EXPECT_EQ(loc2.prefix, "/nimages/");
+    ASSERT_EQ(loc2.common.indexFiles.size(), 3);
+    EXPECT_EQ(loc2.common.indexFiles[0], "pindex.html");
+    EXPECT_EQ(loc2.common.indexFiles[1], "pindex.htm");
+    EXPECT_EQ(loc2.common.indexFiles[2], "pefault.html");
+}

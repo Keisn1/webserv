@@ -10,7 +10,7 @@
 class ConfigParser : public IConfigParser {
   private:
     Context _ast;
-    std::vector<ServerConfig> _serverConfig;
+    std::vector<ServerConfig> _serversConfig;
     LocationConfig _parseLocationContext(const Context& locationContext);
     void _processServerDirectives(const Context& context, ServerConfig& config);
 
