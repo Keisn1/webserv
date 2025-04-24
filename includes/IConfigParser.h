@@ -6,7 +6,7 @@
 class IConfigParser {
   public:
     virtual ~IConfigParser();
-    virtual ServerConfig getServerConfig() = 0;
+    virtual std::vector<ServerConfig> getServersConfig() = 0;
 };
 
 #endif // ICONFIGPARSER_H

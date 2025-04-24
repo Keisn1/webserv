@@ -141,7 +141,7 @@ void ConfigParser::_parseServerContext(const Context& serverContext) {
         }
     }
 
-    _serverConfig = config;
+    _serverConfig.push_back(config);
 }
 
 bool findDirective(const Context& context, const std::string& identifierKey) {
@@ -169,8 +169,7 @@ void ConfigParser::_validateServerContext(const Context& context) {
 }
 
 void ConfigParser::_makeServerConfig() {
-    for (std::vector<Context>::const_iterator it = _ast.children.begin();
-         it != _ast.children.end(); ++it) {
+    for (std::vector<Context>::const_iterator it = _ast.children.begin(); it != _ast.children.end(); ++it) {
         if (it->name == "server") {
             _validateServerContext(*it);
             _parseServerContext(*it);
@@ -182,6 +181,6 @@ Context ConfigParser::getAst() {
     return _ast;
 }
 
-ServerConfig ConfigParser::getServerConfig() {
+std::vector<ServerConfig> ConfigParser::getServersConfig() {
     return _serverConfig;
 }

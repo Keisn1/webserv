@@ -8,17 +8,17 @@ protected:
         std::remove("configTest");
     }
 
-    ServerConfig parseConfig(const std::string& content) {
+    std::vector<ServerConfig> parseConfig(const std::string& content) {
         std::ofstream file("configTest");
         file << content;
         file.close();
         ConfigParser parser("configTest");
-        return parser.getServerConfig();
+        return parser.getServersConfig();
     }
 };
 
 TEST_F(ServerConfigTest, BasicServerConfiguration) {
-    ServerConfig config = parseConfig(
+    std::vector<ServerConfig> config = parseConfig(
         "server {\n"
         "    listen 80;\n"
         "    server_name example.com;\n"
@@ -26,15 +26,15 @@ TEST_F(ServerConfigTest, BasicServerConfiguration) {
         "}\n"
     );
 
-    EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
-    ASSERT_EQ(config.serverNames.size(), 1);
-    EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.common.root, "/var/www/html");
-    EXPECT_TRUE(config.locations.empty());
+    EXPECT_EQ(config[0].listen.at("0.0.0.0"), 80);
+    ASSERT_EQ(config[0].serverNames.size(), 1);
+    EXPECT_EQ(config[0].serverNames[0], "example.com");
+    EXPECT_EQ(config[0].common.root, "/var/www/html");
+    EXPECT_TRUE(config[0].locations.empty());
 }
 
 TEST_F(ServerConfigTest, ServerWithLocationBlock) {
-    ServerConfig config = parseConfig(
+    std::vector<ServerConfig> config = parseConfig(
         "server {\n"
         "    listen 8080;\n"
         "    server_name example.com;\n"
@@ -46,19 +46,19 @@ TEST_F(ServerConfigTest, ServerWithLocationBlock) {
         "}\n"
     );
 
-    EXPECT_EQ(config.listen.at("0.0.0.0"), 8080);
-    ASSERT_EQ(config.serverNames.size(), 1);
-    EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.common.root, "/var/www/html");
-    ASSERT_EQ(config.locations.size(), 1);
-    const LocationConfig& loc = config.locations[0];
+    EXPECT_EQ(config[0].listen.at("0.0.0.0"), 8080);
+    ASSERT_EQ(config[0].serverNames.size(), 1);
+    EXPECT_EQ(config[0].serverNames[0], "example.com");
+    EXPECT_EQ(config[0].common.root, "/var/www/html");
+    ASSERT_EQ(config[0].locations.size(), 1);
+    const LocationConfig& loc = config[0].locations[0];
     EXPECT_EQ(loc.prefix, "/images/");
     EXPECT_EQ(loc.common.root, "/var/www/images");
     ASSERT_THAT(loc.common.allowMethods, testing::ElementsAre("GET", "HEAD"));
 }
 
 TEST_F(ServerConfigTest, HandlesClientMaxBodySize) {
-    ServerConfig config = parseConfig(
+    std::vector<ServerConfig> config = parseConfig(
         "server {\n"
         "    listen 80;\n"
         "    root /var/www/html;\n"
@@ -67,14 +67,14 @@ TEST_F(ServerConfigTest, HandlesClientMaxBodySize) {
         "}\n"
     );
 
-    EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
-    EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.common.root, "/var/www/html");
-    EXPECT_EQ(config.common.clientMaxBody, 10 * 1024 * 1024);
+    EXPECT_EQ(config[0].listen.at("0.0.0.0"), 80);
+    EXPECT_EQ(config[0].serverNames[0], "example.com");
+    EXPECT_EQ(config[0].common.root, "/var/www/html");
+    EXPECT_EQ(config[0].common.clientMaxBody, 10 * 1024 * 1024);
 }
 
 TEST_F(ServerConfigTest, MultipleListenDirectives) {
-    ServerConfig config = parseConfig(
+    std::vector<ServerConfig> config = parseConfig(
         "server {\n"
         "    root /var/www/html;\n"
         "    server_name example.com;\n"
@@ -83,10 +83,10 @@ TEST_F(ServerConfigTest, MultipleListenDirectives) {
         "}\n"
     );
 
-    EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.common.root, "/var/www/html");
-    EXPECT_EQ(config.listen.at("127.0.0.1"), 80);
-    EXPECT_EQ(config.listen.at("::1"), 80);
+    EXPECT_EQ(config[0].serverNames[0], "example.com");
+    EXPECT_EQ(config[0].common.root, "/var/www/html");
+    EXPECT_EQ(config[0].listen.at("127.0.0.1"), 80);
+    EXPECT_EQ(config[0].listen.at("::1"), 80);
 }
 
 TEST_F(ServerConfigTest, ThrowsOnInvalidDirective) {
@@ -120,7 +120,7 @@ TEST_F(ServerConfigTest, HandlesEmptyServerBlock) {
 }
 
 TEST_F(ServerConfigTest, HandlesMultipleServerNames) {
-    ServerConfig config = parseConfig(
+    std::vector<ServerConfig> config = parseConfig(
         "server {\n"
         "    listen 80;\n"
         "    root /var/www;\n"
@@ -128,15 +128,15 @@ TEST_F(ServerConfigTest, HandlesMultipleServerNames) {
         "}\n"
     );
 
-    EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
-    EXPECT_EQ(config.common.root, "/var/www");
-    ASSERT_EQ(config.serverNames.size(), 2);
-    EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.serverNames[1], "www.example.com");
+    EXPECT_EQ(config[0].listen.at("0.0.0.0"), 80);
+    EXPECT_EQ(config[0].common.root, "/var/www");
+    ASSERT_EQ(config[0].serverNames.size(), 2);
+    EXPECT_EQ(config[0].serverNames[0], "example.com");
+    EXPECT_EQ(config[0].serverNames[1], "www.example.com");
 }
 
 TEST_F(ServerConfigTest, HandleIndexFiles) {
-    ServerConfig config = parseConfig(
+    std::vector<ServerConfig> config = parseConfig(
         "server {\n"
         "    listen 80;\n"
         "    root /var/www;\n"
@@ -145,19 +145,19 @@ TEST_F(ServerConfigTest, HandleIndexFiles) {
         "}\n"
     );
 
-    EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
-    EXPECT_EQ(config.common.root, "/var/www");
-    ASSERT_EQ(config.serverNames.size(), 2);
-    EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.serverNames[1], "www.example.com");
-    ASSERT_EQ(config.common.indexFiles.size(), 3);
-    EXPECT_EQ(config.common.indexFiles[0], "index.html");
-    EXPECT_EQ(config.common.indexFiles[1], "index.htm");
-    EXPECT_EQ(config.common.indexFiles[2], "default.html");
+    EXPECT_EQ(config[0].listen.at("0.0.0.0"), 80);
+    EXPECT_EQ(config[0].common.root, "/var/www");
+    ASSERT_EQ(config[0].serverNames.size(), 2);
+    EXPECT_EQ(config[0].serverNames[0], "example.com");
+    EXPECT_EQ(config[0].serverNames[1], "www.example.com");
+    ASSERT_EQ(config[0].common.indexFiles.size(), 3);
+    EXPECT_EQ(config[0].common.indexFiles[0], "index.html");
+    EXPECT_EQ(config[0].common.indexFiles[1], "index.htm");
+    EXPECT_EQ(config[0].common.indexFiles[2], "default.html");
 }
 
 TEST_F(ServerConfigTest, HandleIndexFilesInLocationContext) {
-    ServerConfig config = parseConfig(
+    std::vector<ServerConfig> config = parseConfig(
         "server {\n"
         "    listen 80;\n"
         "    root /var/www;\n"
@@ -168,12 +168,12 @@ TEST_F(ServerConfigTest, HandleIndexFilesInLocationContext) {
         "}\n"
     );
 
-    EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
-    EXPECT_EQ(config.common.root, "/var/www");
-    ASSERT_EQ(config.serverNames.size(), 2);
-    EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.serverNames[1], "www.example.com");
-    const LocationConfig& loc = config.locations[0];
+    EXPECT_EQ(config[0].listen.at("0.0.0.0"), 80);
+    EXPECT_EQ(config[0].common.root, "/var/www");
+    ASSERT_EQ(config[0].serverNames.size(), 2);
+    EXPECT_EQ(config[0].serverNames[0], "example.com");
+    EXPECT_EQ(config[0].serverNames[1], "www.example.com");
+    const LocationConfig& loc = config[0].locations[0];
     ASSERT_EQ(loc.common.indexFiles.size(), 3);
     EXPECT_EQ(loc.common.indexFiles[0], "index.html");
     EXPECT_EQ(loc.common.indexFiles[1], "index.htm");
@@ -181,7 +181,7 @@ TEST_F(ServerConfigTest, HandleIndexFilesInLocationContext) {
 }
 
 TEST_F(ServerConfigTest, HandleIndexFilesInMultipleLocationContext) {
-    ServerConfig config = parseConfig(
+    std::vector<ServerConfig> config = parseConfig(
         "server {\n"
         "    listen 80;\n"
         "    root /var/www;\n"
@@ -195,19 +195,19 @@ TEST_F(ServerConfigTest, HandleIndexFilesInMultipleLocationContext) {
         "}\n"
     );
 
-    EXPECT_EQ(config.listen.at("0.0.0.0"), 80);
-    EXPECT_EQ(config.common.root, "/var/www");
-    ASSERT_EQ(config.serverNames.size(), 2);
-    EXPECT_EQ(config.serverNames[0], "example.com");
-    EXPECT_EQ(config.serverNames[1], "www.example.com");
-    ASSERT_EQ(config.locations.size(), 2);
-    const LocationConfig& loc1 = config.locations[0];
+    EXPECT_EQ(config[0].listen.at("0.0.0.0"), 80);
+    EXPECT_EQ(config[0].common.root, "/var/www");
+    ASSERT_EQ(config[0].serverNames.size(), 2);
+    EXPECT_EQ(config[0].serverNames[0], "example.com");
+    EXPECT_EQ(config[0].serverNames[1], "www.example.com");
+    ASSERT_EQ(config[0].locations.size(), 2);
+    const LocationConfig& loc1 = config[0].locations[0];
     EXPECT_EQ(loc1.prefix, "/images/");
     ASSERT_EQ(loc1.common.indexFiles.size(), 3);
     EXPECT_EQ(loc1.common.indexFiles[0], "index.html");
     EXPECT_EQ(loc1.common.indexFiles[1], "index.htm");
     EXPECT_EQ(loc1.common.indexFiles[2], "default.html");
-    const LocationConfig& loc2 = config.locations[1];
+    const LocationConfig& loc2 = config[0].locations[1];
     EXPECT_EQ(loc2.prefix, "/somewhere/");
     ASSERT_EQ(loc2.common.indexFiles.size(), 3);
     EXPECT_EQ(loc2.common.indexFiles[0], "another_index.html");
