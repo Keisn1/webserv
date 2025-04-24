@@ -155,30 +155,19 @@ void ConfigParser::_parseServerContext(const Context& serverContext) {
 }
 
 void ConfigParser::_parseEventsContext(const Context& eventsContext) {
-    _eventsConfig.maxEvents = DEFAULT_WORKER_CONNECTIONS;
-    _eventsConfig.kernelMethod = DEFAULT_USE;
+    EventsConfig eventsConfig;
+    eventsConfig.maxEvents = DEFAULT_WORKER_CONNECTIONS;
+    eventsConfig.kernelMethod = DEFAULT_USE;
     for (std::vector<Directive>::const_iterator it = eventsContext.directives.begin(); it != eventsContext.directives.end(); ++it) {
         if (it->name == "worker_connections") {
-            if (it->args.size() != 1) {
-                throw std::runtime_error("worker_connections requires exactly one argument");
-            }
-            _eventsConfig.maxEvents = static_cast<size_t>(std::strtoul(it->args[0].c_str(), NULL, 10));
-
-            if (_eventsConfig.maxEvents > MAX_WORKER_CONNECTIONS) {
-                throw std::runtime_error("worker_connections exceeded the maximum value");
-            }
+            _parseWorkerConnections(*it, eventsConfig);
         } else if (it->name == "use") {
-            if (it->args.size() != 1) {
-                throw std::runtime_error("use requires exactly one argument");
-            }
-            if (it->args[0] != "select" && it->args[0] != "poll" && it->args[0] != "epoll" && it->args[0] != "kqueue") {
-                throw std::runtime_error("Unknown use method: " + it->name);
-            }
-            _eventsConfig.kernelMethod = it->args[0];
+            _parseUse(*it, eventsConfig);
         } else {
             throw std::runtime_error("Unknown directive in events context: " + it->name);
         }
     }
+    _eventsConfig = eventsConfig;
 }
 
 bool findDirective(const Context& context, const std::string& identifierKey) {
