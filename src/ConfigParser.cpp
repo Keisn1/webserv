@@ -1,19 +1,14 @@
 #include <ConfigParser.h>
 
 ConfigParser::ConfigParser(const std::string& filename) {
-    _validateFilename(filename);
-    _makeAst(filename);
+    _filename = filename;
+    _validateFilename();
+    _makeAst();
     _makeConfig();
 };
 
 ConfigParser::~ConfigParser() {};
 IConfigParser::~IConfigParser() {};
-
-void ConfigParser::_validateFilename(const std::string& filename) {
-    if (filename.size() <= 5 || filename.find(".conf") == std::string::npos) {
-        throw std::runtime_error("Invalid file name");
-    }
-}
 
 void parseDirectiveOrBlock(TokenStream& tokenStream, Context& currentBlock) {
     if (!tokenStream.hasMore()) {
@@ -59,8 +54,8 @@ void parseDirectiveOrBlock(TokenStream& tokenStream, Context& currentBlock) {
     }
 }
 
-void ConfigParser::_makeAst(const std::string& filename) {
-    std::ifstream configFile(filename);
+void ConfigParser::_makeAst() {
+    std::ifstream configFile(_filename);
     if (!configFile.is_open()) {
         throw std::runtime_error("Failed to open configuration file");
     }
@@ -142,9 +137,7 @@ void ConfigParser::_parseServerContext(const Context& serverContext) {
     if (!serverContext.parameters.empty()) {
         throw std::runtime_error("Server context doesn't accept parameters");
     }
-
     _processServerDirectives(serverContext, config);
-
     for (std::vector<Context>::const_iterator it = serverContext.children.begin(); it != serverContext.children.end(); ++it) {
         if (it->name == "location") {
             config.locations.push_back(_parseLocationContext(*it));

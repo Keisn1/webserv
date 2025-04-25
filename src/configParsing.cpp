@@ -1,5 +1,11 @@
 #include <ConfigParser.h>
 
+void ConfigParser::_validateFilename() {
+    if (_filename.size() <= 5 || _filename.find(".conf") == std::string::npos) {
+        throw std::runtime_error("Invalid file name");
+    }
+}
+
 void ConfigParser::_parseListen(const Directive& directive, ServerConfig& config) {
     if (directive.args.empty()) {
         throw std::runtime_error("Missing argument for listen directive");

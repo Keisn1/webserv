@@ -13,6 +13,7 @@
 
 class ConfigParser : public IConfigParser {
   private:
+    std::string _filename;
     Context _ast;
     EventsConfig _eventsConfig;
     std::vector<ServerConfig> _serversConfig;
@@ -31,9 +32,9 @@ class ConfigParser : public IConfigParser {
     
     void _parseServerContext(const Context& serverContext);
     void _parseEventsContext(const Context& eventsContext);
-    void _validateFilename(const std::string& filename);
     void _validateServerContext(const Context& context);
-    void _makeAst(const std::string& filename);
+    void _validateFilename();
+    void _makeAst();
     void _makeConfig();
     
   public:
