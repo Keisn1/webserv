@@ -6,6 +6,26 @@ void ConfigParser::_validateFilename() {
     }
 }
 
+void ConfigParser::_parseWorkerConnections(const Directive& directive, EventsConfig& config) {
+    if (directive.args.size() != 1) {
+        throw std::runtime_error("worker_connections requires exactly one argument");
+    }
+    config.workerConnections = static_cast<size_t>(std::strtoul(directive.args[0].c_str(), NULL, 10));
+    if (config.workerConnections > MAX_WORKER_CONNECTIONS) {
+        throw std::runtime_error("worker_connections exceeded the maximum value");
+    }
+}
+
+void ConfigParser::_parseUse(const Directive& directive, EventsConfig& config) {
+    if (directive.args.size() != 1) {
+        throw std::runtime_error("use requires exactly one argument");
+    }
+    if (directive.args[0] != "select" && directive.args[0] != "poll" && directive.args[0] != "epoll" && directive.args[0] != "kqueue") {
+        throw std::runtime_error("Unknown use method: " + directive.name);
+    }
+    config.kernelMethod = directive.args[0];
+}
+
 void ConfigParser::_parseListen(const Directive& directive, ServerConfig& config) {
     if (directive.args.empty()) {
         throw std::runtime_error("Missing argument for listen directive");
@@ -39,6 +59,19 @@ void ConfigParser::_parseServerNames(const Directive& directive, ServerConfig& c
     for (size_t i = 0; i < directive.args.size(); ++i) {
         config.serverNames.push_back(directive.args[i]);
     }
+}
+
+void ConfigParser::_parseCgiExt(const Directive& directive, ServerConfig& config) {
+    if (directive.args.size() != 2) {
+        throw std::runtime_error("cgi_ext requires exactly two arguments");
+    } else if (directive.args[0][0] != '.') {
+        throw std::runtime_error("Invalid cgi_ext argument: " + directive.args[0]);
+    } else if (directive.args[1][0] != '/') {
+        throw std::runtime_error("Invalid cgi_ext argument: " + directive.args[1]);
+    } else if (config.cgi.find(directive.args[0]) != config.cgi.end()) {
+        throw std::runtime_error("Duplicate cgi_ext extension: " + directive.args[0]);
+    } 
+    config.cgi.insert(std::pair<std::string, std::string>(directive.args[0], directive.args[1]));
 }
 
 void ConfigParser::_parseRoot(const Directive& directive, CommonConfig& config) {
@@ -94,26 +127,6 @@ void ConfigParser::_parseIndex(const Directive& directive, CommonConfig& config)
     }
 }
 
-void ConfigParser::_parseWorkerConnections(const Directive& directive, EventsConfig& config) {
-    if (directive.args.size() != 1) {
-        throw std::runtime_error("worker_connections requires exactly one argument");
-    }
-    config.workerConnections = static_cast<size_t>(std::strtoul(directive.args[0].c_str(), NULL, 10));
-    if (config.workerConnections > MAX_WORKER_CONNECTIONS) {
-        throw std::runtime_error("worker_connections exceeded the maximum value");
-    }
-}
-
-void ConfigParser::_parseUse(const Directive& directive, EventsConfig& config) {
-    if (directive.args.size() != 1) {
-        throw std::runtime_error("use requires exactly one argument");
-    }
-    if (directive.args[0] != "select" && directive.args[0] != "poll" && directive.args[0] != "epoll" && directive.args[0] != "kqueue") {
-        throw std::runtime_error("Unknown use method: " + directive.name);
-    }
-    config.kernelMethod = directive.args[0];
-}
-
 void ConfigParser::_parseErrorPage(const Directive& directive, CommonConfig& config) {
     const std::vector<std::string>& args = directive.args;
     const size_t argCount = args.size();
@@ -152,17 +165,4 @@ void ConfigParser::_parseAutoindex(const Directive& directive, CommonConfig& con
     } else if (directive.args[0] != "off") {
         throw std::runtime_error("Invalid autoindex argument: " + directive.args[0]);
     }
-}
-
-void ConfigParser::_parseCgiExt(const Directive& directive, ServerConfig& config) {
-    if (directive.args.size() != 2) {
-        throw std::runtime_error("cgi_ext requires exactly two arguments");
-    } else if (directive.args[0][0] != '.') {
-        throw std::runtime_error("Invalid cgi_ext argument: " + directive.args[0]);
-    } else if (directive.args[1][0] != '/') {
-        throw std::runtime_error("Invalid cgi_ext argument: " + directive.args[1]);
-    } else if (config.cgi.find(directive.args[0]) != config.cgi.end()) {
-        throw std::runtime_error("Duplicate cgi_ext extension: " + directive.args[0]);
-    } 
-    config.cgi.insert(std::pair<std::string, std::string>(directive.args[0], directive.args[1]));
 }

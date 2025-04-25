@@ -10,26 +10,22 @@ ConfigParser::ConfigParser(const std::string& filename) {
 ConfigParser::~ConfigParser() {};
 IConfigParser::~IConfigParser() {};
 
-void parseDirectiveOrBlock(TokenStream& tokenStream, Context& currentBlock) {
+void ConfigParser::_parseDirectiveOrBlock(TokenStream& tokenStream, Context& currentBlock) {
     if (!tokenStream.hasMore()) {
         return;
     }
-
     Token nameToken = tokenStream.next();
     if (nameToken.type != IDENTIFIER) {
         throw std::runtime_error("Expected identifier for directive/block");
     }
-
     std::set<std::string> terminators;
     terminators.insert("{");
     terminators.insert(";");
     terminators.insert("}");
     std::vector<std::string> args = tokenStream.collectArguments(terminators);
-
     if (!tokenStream.hasMore()) {
         throw std::runtime_error("Unexpected end of file");
     }
-
     Token punctToken = tokenStream.peek();
     if (punctToken.value == "{") {
         tokenStream.expect(PUNCT, "{");
@@ -40,7 +36,7 @@ void parseDirectiveOrBlock(TokenStream& tokenStream, Context& currentBlock) {
             if (!tokenStream.hasMore()) {
                 throw std::runtime_error("Unclosed block");
             }
-            parseDirectiveOrBlock(tokenStream, child);
+            _parseDirectiveOrBlock(tokenStream, child);
         }
         currentBlock.children.push_back(child);
     } else if (punctToken.value == ";") {
@@ -54,40 +50,14 @@ void parseDirectiveOrBlock(TokenStream& tokenStream, Context& currentBlock) {
     }
 }
 
-void ConfigParser::_makeAst() {
-    std::ifstream configFile(_filename);
-    if (!configFile.is_open()) {
-        throw std::runtime_error("Failed to open configuration file");
-    }
-    std::string buffer;
-    std::string line;
-    while (getline(configFile, line)) {
-        buffer += line + "\n";
-    }
-    configFile.close();
-
-    TokenStream tokenstream(buffer);
-    _ast = Context();
-    _ast.name = "root";
-
-    while (tokenstream.hasMore()) {
-        if (tokenstream.accept(PUNCT, ";")) {
-            continue;
-        }
-        parseDirectiveOrBlock(tokenstream, _ast);
-    }
-}
-
 LocationConfig ConfigParser::_parseLocationContext(const Context& locationContext) {
     LocationConfig locationConfig;
     if (locationContext.parameters.empty()) {
         throw std::runtime_error("Location block missing path parameter");
     }
-
     for (size_t i = 0; i < locationContext.parameters.size(); ++i) {
         locationConfig.prefix.append(locationContext.parameters[i]);
     }
-
     for (std::vector<Directive>::const_iterator it = locationContext.directives.begin(); it != locationContext.directives.end(); ++it) {
         if (it->name == "root") {
             _parseRoot(*it, locationConfig.common);
@@ -136,7 +106,6 @@ void ConfigParser::_processServerDirectives(const Context& context, ServerConfig
 
 void ConfigParser::_parseServerContext(const Context& serverContext) {
     ServerConfig config;
-    
     if (!serverContext.parameters.empty()) {
         throw std::runtime_error("Server context doesn't accept parameters");
     }
@@ -146,7 +115,6 @@ void ConfigParser::_parseServerContext(const Context& serverContext) {
             config.locations.push_back(_parseLocationContext(*it));
         }
     }
-
     _serversConfig.push_back(config);
 }
 
@@ -166,7 +134,7 @@ void ConfigParser::_parseEventsContext(const Context& eventsContext) {
     _eventsConfig = eventsConfig;
 }
 
-bool findDirective(const Context& context, const std::string& identifierKey) {
+bool ConfigParser::_findDirective(const Context& context, const std::string& identifierKey) {
     for (std::vector<Directive>::const_iterator it = context.directives.begin(); it != context.directives.end(); ++it) {
         if (it->name == identifierKey) {
             return true;
@@ -178,12 +146,36 @@ bool findDirective(const Context& context, const std::string& identifierKey) {
 void ConfigParser::_validateServerContext(const Context& context) {
     if (context.name != "server") {
         throw std::runtime_error("Unexpected context type: " + context.name);
-    } else if (!findDirective(context, "listen")) {
+    } else if (!_findDirective(context, "listen")) {
         throw std::runtime_error("Server block missing required listen directive");
-    } else if (!findDirective(context, "server_name")) {
+    } else if (!_findDirective(context, "server_name")) {
         throw std::runtime_error("Server block missing required server_name directive");
-    } else if (!findDirective(context, "root")) {
+    } else if (!_findDirective(context, "root")) {
         throw std::runtime_error("Server block missing required root directive");
+    }
+}
+
+void ConfigParser::_makeAst() {
+    std::ifstream configFile(_filename);
+    if (!configFile.is_open()) {
+        throw std::runtime_error("Failed to open configuration file");
+    }
+    std::string buffer;
+    std::string line;
+    while (getline(configFile, line)) {
+        buffer += line + "\n";
+    }
+    configFile.close();
+
+    TokenStream tokenstream(buffer);
+    _ast = Context();
+    _ast.name = "root";
+
+    while (tokenstream.hasMore()) {
+        if (tokenstream.accept(PUNCT, ";")) {
+            continue;
+        }
+        _parseDirectiveOrBlock(tokenstream, _ast);
     }
 }
 
