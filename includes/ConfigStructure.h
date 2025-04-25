@@ -5,6 +5,10 @@
 #include <vector>
 #include <iostream>
 
+#define DEFAULT_WORKER_CONNECTIONS 512
+#define MAX_WORKER_CONNECTIONS 1024
+#define DEFAULT_USE "epoll"
+
 typedef struct Directive {
   std::string name;
   std::vector<std::string> args;
@@ -18,23 +22,37 @@ typedef struct Context {
 } Context;
 
 typedef struct EventsConfig {
-  size_t maxEvents;
+  size_t workerConnections;
   std::string kernelMethod;
+
+  EventsConfig() :
+    workerConnections(DEFAULT_WORKER_CONNECTIONS),
+    kernelMethod(DEFAULT_USE)
+    {}
 } EventsConfig;
 
 typedef struct CommonConfig {
   std::string root;
   std::vector<std::string> allowMethods;
-  std::vector<std::string> indexFiles;
+  std::vector<std::string> index;
   size_t clientMaxBody;
   std::map<int, std::string> errorPages;
-  // to add more
+  bool autoindex;
+  // error_page
+
+  CommonConfig() : 
+    root(),
+    allowMethods(),
+    index(),
+    clientMaxBody(0),
+    errorPages(),
+    autoindex(false)
+    {}
 } CommonConfig;
 
 typedef struct LocationConfig {
   std::string prefix;
   CommonConfig common;
-  // to add more
 } LocationConfig;
 
 typedef struct ServerConfig {

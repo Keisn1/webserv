@@ -90,7 +90,7 @@ void ConfigParser::_parseIndex(const Directive& directive, CommonConfig& config)
         throw std::runtime_error("index requires more than 0 arguments");
     }
     for (size_t i = 0; i < directive.args.size(); ++i) {
-        config.indexFiles.push_back(directive.args[i]);
+        config.index.push_back(directive.args[i]);
     }
 }
 
@@ -98,8 +98,8 @@ void ConfigParser::_parseWorkerConnections(const Directive& directive, EventsCon
     if (directive.args.size() != 1) {
         throw std::runtime_error("worker_connections requires exactly one argument");
     }
-    config.maxEvents = static_cast<size_t>(std::strtoul(directive.args[0].c_str(), NULL, 10));
-    if (config.maxEvents > MAX_WORKER_CONNECTIONS) {
+    config.workerConnections = static_cast<size_t>(std::strtoul(directive.args[0].c_str(), NULL, 10));
+    if (config.workerConnections > MAX_WORKER_CONNECTIONS) {
         throw std::runtime_error("worker_connections exceeded the maximum value");
     }
 }
@@ -114,6 +114,14 @@ void ConfigParser::_parseUse(const Directive& directive, EventsConfig& config) {
     config.kernelMethod = directive.args[0];
 }
 
-// index
-// autoindex
+void ConfigParser::_parseAutoindex(const Directive& directive, CommonConfig& config) {
+    if (directive.args.size() != 1) {
+        throw std::runtime_error("autoindex requires exactly one argument");
+    } if (directive.args[0] == "on") {
+        config.autoindex = true;
+    } else if (directive.args[0] != "off") {
+        throw std::runtime_error("Invalid autoindex argument: " + directive.args[0]);
+    }
+}
+
 // error_page

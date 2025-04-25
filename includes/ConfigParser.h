@@ -7,10 +7,6 @@
 #include <TokenStream.h>
 #include <IConfigParser.h>
 
-#define DEFAULT_WORKER_CONNECTIONS 512
-#define MAX_WORKER_CONNECTIONS 1024
-#define DEFAULT_USE "epoll"
-
 class ConfigParser : public IConfigParser {
   private:
     std::string _filename;
@@ -29,7 +25,8 @@ class ConfigParser : public IConfigParser {
     void _parseIndex(const Directive& directive, CommonConfig& config);
     void _parseWorkerConnections(const Directive& directive, EventsConfig& config);
     void _parseUse(const Directive& directive, EventsConfig& config);
-    
+    void _parseAutoindex(const Directive& directive, CommonConfig& config);
+
     void _parseServerContext(const Context& serverContext);
     void _parseEventsContext(const Context& eventsContext);
     void _validateServerContext(const Context& context);

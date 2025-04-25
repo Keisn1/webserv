@@ -150,10 +150,10 @@ TEST_F(ServerConfigTest, HandleIndexFiles) {
     ASSERT_EQ(config[0].serverNames.size(), 2);
     EXPECT_EQ(config[0].serverNames[0], "example.com");
     EXPECT_EQ(config[0].serverNames[1], "www.example.com");
-    ASSERT_EQ(config[0].common.indexFiles.size(), 3);
-    EXPECT_EQ(config[0].common.indexFiles[0], "index.html");
-    EXPECT_EQ(config[0].common.indexFiles[1], "index.htm");
-    EXPECT_EQ(config[0].common.indexFiles[2], "default.html");
+    ASSERT_EQ(config[0].common.index.size(), 3);
+    EXPECT_EQ(config[0].common.index[0], "index.html");
+    EXPECT_EQ(config[0].common.index[1], "index.htm");
+    EXPECT_EQ(config[0].common.index[2], "default.html");
 }
 
 TEST_F(ServerConfigTest, HandleIndexFilesInLocationContext) {
@@ -174,10 +174,10 @@ TEST_F(ServerConfigTest, HandleIndexFilesInLocationContext) {
     EXPECT_EQ(config[0].serverNames[0], "example.com");
     EXPECT_EQ(config[0].serverNames[1], "www.example.com");
     const LocationConfig& loc = config[0].locations[0];
-    ASSERT_EQ(loc.common.indexFiles.size(), 3);
-    EXPECT_EQ(loc.common.indexFiles[0], "index.html");
-    EXPECT_EQ(loc.common.indexFiles[1], "index.htm");
-    EXPECT_EQ(loc.common.indexFiles[2], "default.html");
+    ASSERT_EQ(loc.common.index.size(), 3);
+    EXPECT_EQ(loc.common.index[0], "index.html");
+    EXPECT_EQ(loc.common.index[1], "index.htm");
+    EXPECT_EQ(loc.common.index[2], "default.html");
 }
 
 TEST_F(ServerConfigTest, HandleIndexFilesInMultipleLocationContext) {
@@ -203,16 +203,16 @@ TEST_F(ServerConfigTest, HandleIndexFilesInMultipleLocationContext) {
     ASSERT_EQ(config[0].locations.size(), 2);
     const LocationConfig& loc1 = config[0].locations[0];
     EXPECT_EQ(loc1.prefix, "/images/");
-    ASSERT_EQ(loc1.common.indexFiles.size(), 3);
-    EXPECT_EQ(loc1.common.indexFiles[0], "index.html");
-    EXPECT_EQ(loc1.common.indexFiles[1], "index.htm");
-    EXPECT_EQ(loc1.common.indexFiles[2], "default.html");
+    ASSERT_EQ(loc1.common.index.size(), 3);
+    EXPECT_EQ(loc1.common.index[0], "index.html");
+    EXPECT_EQ(loc1.common.index[1], "index.htm");
+    EXPECT_EQ(loc1.common.index[2], "default.html");
     const LocationConfig& loc2 = config[0].locations[1];
     EXPECT_EQ(loc2.prefix, "/somewhere/");
-    ASSERT_EQ(loc2.common.indexFiles.size(), 3);
-    EXPECT_EQ(loc2.common.indexFiles[0], "another_index.html");
-    EXPECT_EQ(loc2.common.indexFiles[1], "another_index.htm");
-    EXPECT_EQ(loc2.common.indexFiles[2], "another_default.html");
+    ASSERT_EQ(loc2.common.index.size(), 3);
+    EXPECT_EQ(loc2.common.index[0], "another_index.html");
+    EXPECT_EQ(loc2.common.index[1], "another_index.htm");
+    EXPECT_EQ(loc2.common.index[2], "another_default.html");
 }
 
 TEST_F(ServerConfigTest, ThrowsOnInvalidHttpMethodInLocation) {
@@ -274,10 +274,10 @@ TEST_F(ServerConfigTest, HandleMultipleServerContextWithLocationsInside) {
     ASSERT_EQ(config[0].locations.size(), 1);
     const LocationConfig& loc1 = config[0].locations[0];
     EXPECT_EQ(loc1.prefix, "/images/");
-    ASSERT_EQ(loc1.common.indexFiles.size(), 3);
-    EXPECT_EQ(loc1.common.indexFiles[0], "index.html");
-    EXPECT_EQ(loc1.common.indexFiles[1], "index.htm");
-    EXPECT_EQ(loc1.common.indexFiles[2], "default.html");
+    ASSERT_EQ(loc1.common.index.size(), 3);
+    EXPECT_EQ(loc1.common.index[0], "index.html");
+    EXPECT_EQ(loc1.common.index[1], "index.htm");
+    EXPECT_EQ(loc1.common.index[2], "default.html");
     
     EXPECT_EQ(config[1].listen.at("0.0.0.0"), 81);
     EXPECT_EQ(config[1].common.root, "/car/www");
@@ -287,10 +287,10 @@ TEST_F(ServerConfigTest, HandleMultipleServerContextWithLocationsInside) {
     ASSERT_EQ(config[1].locations.size(), 1);
     const LocationConfig& loc2 = config[1].locations[0];
     EXPECT_EQ(loc2.prefix, "/nimages/");
-    ASSERT_EQ(loc2.common.indexFiles.size(), 3);
-    EXPECT_EQ(loc2.common.indexFiles[0], "pindex.html");
-    EXPECT_EQ(loc2.common.indexFiles[1], "pindex.htm");
-    EXPECT_EQ(loc2.common.indexFiles[2], "pefault.html");
+    ASSERT_EQ(loc2.common.index.size(), 3);
+    EXPECT_EQ(loc2.common.index[0], "pindex.html");
+    EXPECT_EQ(loc2.common.index[1], "pindex.htm");
+    EXPECT_EQ(loc2.common.index[2], "pefault.html");
 }
 
 TEST_F(ServerConfigTest, HandleMultipleServerContextWithMultipleLocationsInside) {
@@ -327,16 +327,16 @@ TEST_F(ServerConfigTest, HandleMultipleServerContextWithMultipleLocationsInside)
     ASSERT_EQ(config[0].locations.size(), 2);
     const LocationConfig& loc1 = config[0].locations[0];
     EXPECT_EQ(loc1.prefix, "/images/");
-    ASSERT_EQ(loc1.common.indexFiles.size(), 3);
-    EXPECT_EQ(loc1.common.indexFiles[0], "index.html");
-    EXPECT_EQ(loc1.common.indexFiles[1], "index.htm");
-    EXPECT_EQ(loc1.common.indexFiles[2], "default.html");
+    ASSERT_EQ(loc1.common.index.size(), 3);
+    EXPECT_EQ(loc1.common.index[0], "index.html");
+    EXPECT_EQ(loc1.common.index[1], "index.htm");
+    EXPECT_EQ(loc1.common.index[2], "default.html");
     const LocationConfig& loc2 = config[0].locations[1];
     EXPECT_EQ(loc2.prefix, "/nimages/");
-    ASSERT_EQ(loc2.common.indexFiles.size(), 3);
-    EXPECT_EQ(loc2.common.indexFiles[0], "pindex.html");
-    EXPECT_EQ(loc2.common.indexFiles[1], "pindex.htm");
-    EXPECT_EQ(loc2.common.indexFiles[2], "pefault.html");
+    ASSERT_EQ(loc2.common.index.size(), 3);
+    EXPECT_EQ(loc2.common.index[0], "pindex.html");
+    EXPECT_EQ(loc2.common.index[1], "pindex.htm");
+    EXPECT_EQ(loc2.common.index[2], "pefault.html");
     
     EXPECT_EQ(config[1].listen.at("0.0.0.0"), 81);
     EXPECT_EQ(config[1].common.root, "/car/www");
@@ -346,14 +346,31 @@ TEST_F(ServerConfigTest, HandleMultipleServerContextWithMultipleLocationsInside)
     ASSERT_EQ(config[1].locations.size(), 2);
     const LocationConfig& loc3 = config[1].locations[0];
     EXPECT_EQ(loc3.prefix, "/nimages/");
-    ASSERT_EQ(loc3.common.indexFiles.size(), 3);
-    EXPECT_EQ(loc3.common.indexFiles[0], "pindex.html");
-    EXPECT_EQ(loc3.common.indexFiles[1], "pindex.htm");
-    EXPECT_EQ(loc3.common.indexFiles[2], "pefault.html");
+    ASSERT_EQ(loc3.common.index.size(), 3);
+    EXPECT_EQ(loc3.common.index[0], "pindex.html");
+    EXPECT_EQ(loc3.common.index[1], "pindex.htm");
+    EXPECT_EQ(loc3.common.index[2], "pefault.html");
     const LocationConfig& loc4 = config[1].locations[1];
     EXPECT_EQ(loc4.prefix, "/images/");
-    ASSERT_EQ(loc4.common.indexFiles.size(), 3);
-    EXPECT_EQ(loc4.common.indexFiles[0], "index.html");
-    EXPECT_EQ(loc4.common.indexFiles[1], "index.htm");
-    EXPECT_EQ(loc4.common.indexFiles[2], "default.html");
+    ASSERT_EQ(loc4.common.index.size(), 3);
+    EXPECT_EQ(loc4.common.index[0], "index.html");
+    EXPECT_EQ(loc4.common.index[1], "index.htm");
+    EXPECT_EQ(loc4.common.index[2], "default.html");
+}
+
+TEST_F(ServerConfigTest, SimpleCheckOfAutoindex) {
+    std::vector<ServerConfig> config = parseConfig(
+        "server {\n"
+        "    root /var/www/html;\n"
+        "    server_name example.com;\n"
+        "    listen 127.0.0.1:80;\n"
+        "    listen [::1]:80;\n"
+        "}\n"
+    );
+
+    EXPECT_EQ(config[0].serverNames[0], "example.com");
+    EXPECT_EQ(config[0].common.root, "/var/www/html");
+    EXPECT_EQ(config[0].listen.at("127.0.0.1"), 80);
+    EXPECT_EQ(config[0].listen.at("::1"), 80);
+    EXPECT_EQ(config[0].common.autoindex, false);
 }

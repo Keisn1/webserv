@@ -25,7 +25,7 @@ TEST_F(EventsConfigTest, EventsCheck) {
         "}\n"
     );
 
-    EXPECT_EQ(config.maxEvents, 1024);
+    EXPECT_EQ(config.workerConnections, 1024);
     EXPECT_EQ(config.kernelMethod, "epoll");
 }
 
@@ -37,7 +37,7 @@ TEST_F(EventsConfigTest, ValidEventsConfiguration) {
         "}\n"
     );
 
-    EXPECT_EQ(config.maxEvents, 512);
+    EXPECT_EQ(config.workerConnections, 512);
     EXPECT_EQ(config.kernelMethod, "kqueue");
 }
 
@@ -48,7 +48,7 @@ TEST_F(EventsConfigTest, DefaultValues) {
         "}\n"
     );
 
-    EXPECT_EQ(config.maxEvents, 512);
+    EXPECT_EQ(config.workerConnections, 512);
     EXPECT_EQ(config.kernelMethod, "epoll");
 }
 
@@ -116,7 +116,7 @@ TEST_F(EventsConfigTest, MultipleWorkerConnections) {
         "}\n"
     );
 
-    EXPECT_EQ(config.maxEvents, 512);
+    EXPECT_EQ(config.workerConnections, 512);
 }
 
 TEST_F(EventsConfigTest, CommentsAndWhitespace) {
@@ -128,7 +128,7 @@ TEST_F(EventsConfigTest, CommentsAndWhitespace) {
         "}\n"
     );
 
-    EXPECT_EQ(config.maxEvents, 512);
+    EXPECT_EQ(config.workerConnections, 512);
     EXPECT_EQ(config.kernelMethod, "epoll");
 }
 

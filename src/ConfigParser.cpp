@@ -79,34 +79,32 @@ void ConfigParser::_makeAst() {
 }
 
 LocationConfig ConfigParser::_parseLocationContext(const Context& locationContext) {
-    LocationConfig location;
-    
+    LocationConfig locationConfig;
     if (locationContext.parameters.empty()) {
         throw std::runtime_error("Location block missing path parameter");
     }
 
     for (size_t i = 0; i < locationContext.parameters.size(); ++i) {
-        location.prefix.append(locationContext.parameters[i]);
+        locationConfig.prefix.append(locationContext.parameters[i]);
     }
 
     for (std::vector<Directive>::const_iterator it = locationContext.directives.begin(); it != locationContext.directives.end(); ++it) {
         if (it->name == "root") {
-            _parseRoot(*it, location.common);
+            _parseRoot(*it, locationConfig.common);
         } else if (it->name == "client_max_body_size") {
-            _parseClientMaxBodySize(*it, location.common);
+            _parseClientMaxBodySize(*it, locationConfig.common);
         } else if (it->name == "allow_methods") {
-            _parseAllowMethods(*it, location.common);
+            _parseAllowMethods(*it, locationConfig.common);
         } else if (it->name == "index") {
-            _parseIndex(*it, location.common);
+            _parseIndex(*it, locationConfig.common);
+        } else if (it->name == "autoindex"){
+            _parseAutoindex(*it, locationConfig.common);
         } else {
             throw std::runtime_error("Unknown directive in location context: " + it->name);
         }
-        // autoindex
-        // cgi_path
-        // cgi_ext
-        // maybe more
+        // error_page
     }
-    return location;
+    return locationConfig;
 }
 
 void ConfigParser::_processServerDirectives(const Context& context, ServerConfig& serverConfig) {
@@ -123,11 +121,14 @@ void ConfigParser::_processServerDirectives(const Context& context, ServerConfig
             _parseAllowMethods(*it, serverConfig.common);
         } else if (it->name == "index") {
             _parseIndex(*it, serverConfig.common);
+        } else if (it->name == "autoindex"){
+            _parseAutoindex(*it, serverConfig.common);
         } else {
             throw std::runtime_error("Unknown directive in server context: " + it->name);
         }
         // error_page
-        // and more
+        // cgi_path
+        // cgi_ext
     }
 }
 
@@ -149,7 +150,7 @@ void ConfigParser::_parseServerContext(const Context& serverContext) {
 
 void ConfigParser::_parseEventsContext(const Context& eventsContext) {
     EventsConfig eventsConfig;
-    eventsConfig.maxEvents = DEFAULT_WORKER_CONNECTIONS;
+    eventsConfig.workerConnections = DEFAULT_WORKER_CONNECTIONS;
     eventsConfig.kernelMethod = DEFAULT_USE;
     for (std::vector<Directive>::const_iterator it = eventsContext.directives.begin(); it != eventsContext.directives.end(); ++it) {
         if (it->name == "worker_connections") {
@@ -189,7 +190,7 @@ void ConfigParser::_makeConfig() {
         if (it->name == "server") {
             _validateServerContext(*it);
             _parseServerContext(*it);
-        } else if (it->name == "events" && _eventsConfig.kernelMethod.empty()) {
+        } else if (it->name == "events") {
             _parseEventsContext(*it);
         } else {
             throw std::runtime_error("Invalid context block: " + it->name);
