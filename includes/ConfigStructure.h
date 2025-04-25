@@ -36,16 +36,15 @@ typedef struct CommonConfig {
   std::vector<std::string> allowMethods;
   std::vector<std::string> index;
   size_t clientMaxBody;
-  std::map<int, std::string> errorPages;
+  std::map<int, std::string> errorPage;
   bool autoindex;
-  // error_page
 
   CommonConfig() : 
     root(),
     allowMethods(),
     index(),
     clientMaxBody(0),
-    errorPages(),
+    errorPage(),
     autoindex(false)
     {}
 } CommonConfig;

@@ -99,10 +99,11 @@ LocationConfig ConfigParser::_parseLocationContext(const Context& locationContex
             _parseIndex(*it, locationConfig.common);
         } else if (it->name == "autoindex"){
             _parseAutoindex(*it, locationConfig.common);
+        } else if (it->name == "error_page"){
+            _parseErrorPage(*it, locationConfig.common);
         } else {
             throw std::runtime_error("Unknown directive in location context: " + it->name);
         }
-        // error_page
     }
     return locationConfig;
 }
@@ -123,10 +124,11 @@ void ConfigParser::_processServerDirectives(const Context& context, ServerConfig
             _parseIndex(*it, serverConfig.common);
         } else if (it->name == "autoindex"){
             _parseAutoindex(*it, serverConfig.common);
+        } else if (it->name == "error_page"){
+            _parseErrorPage(*it, serverConfig.common);
         } else {
             throw std::runtime_error("Unknown directive in server context: " + it->name);
         }
-        // error_page
         // cgi_path
         // cgi_ext
     }
@@ -186,11 +188,13 @@ void ConfigParser::_validateServerContext(const Context& context) {
 }
 
 void ConfigParser::_makeConfig() {
+    bool firstEventContext = true;
     for (std::vector<Context>::const_iterator it = _ast.children.begin(); it != _ast.children.end(); ++it) {
         if (it->name == "server") {
             _validateServerContext(*it);
             _parseServerContext(*it);
-        } else if (it->name == "events") {
+        } else if (it->name == "events" && firstEventContext) {
+            firstEventContext = false;
             _parseEventsContext(*it);
         } else {
             throw std::runtime_error("Invalid context block: " + it->name);

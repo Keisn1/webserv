@@ -25,6 +25,7 @@ class ConfigParser : public IConfigParser {
     void _parseIndex(const Directive& directive, CommonConfig& config);
     void _parseWorkerConnections(const Directive& directive, EventsConfig& config);
     void _parseUse(const Directive& directive, EventsConfig& config);
+    void _parseErrorPage(const Directive& directive, CommonConfig& config);
     void _parseAutoindex(const Directive& directive, CommonConfig& config);
 
     void _parseServerContext(const Context& serverContext);

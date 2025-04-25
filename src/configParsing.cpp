@@ -114,6 +114,36 @@ void ConfigParser::_parseUse(const Directive& directive, EventsConfig& config) {
     config.kernelMethod = directive.args[0];
 }
 
+void ConfigParser::_parseErrorPage(const Directive& directive, CommonConfig& config) {
+    const std::vector<std::string>& args = directive.args;
+    const size_t arg_count = args.size();
+
+    if (arg_count < 2) {
+        throw std::runtime_error("error_page directive requires at least 2 arguments");
+    }
+
+    const std::string& uri = args.back();
+    if (uri.empty() || (uri[0] != '/' && uri.find("://") == std::string::npos)) {
+        throw std::runtime_error("Invalid error_page URI: " + uri);
+    }
+
+    for (size_t i = 0; i < arg_count - 1; ++i) {
+        const std::string& code_str = args[i];
+        const char* start = code_str.c_str();
+        char* end;
+        long code = std::strtoul(start, &end, 10);
+
+        if (*end != '\0' || code_str.empty()) {
+            throw std::runtime_error("Invalid error_page code format: " + args[i]);
+        } else if (code < 300 || code > 599) {
+            throw std::runtime_error("Invalid error_page code at line " + args[i]);
+        } else if (config.errorPage.find(code) != config.errorPage.end()) {
+            throw std::runtime_error("Duplicate error_page code: " + args[i]);
+        }
+        config.errorPage[static_cast<int>(code)] = uri;
+    }
+}
+
 void ConfigParser::_parseAutoindex(const Directive& directive, CommonConfig& config) {
     if (directive.args.size() != 1) {
         throw std::runtime_error("autoindex requires exactly one argument");
@@ -123,5 +153,3 @@ void ConfigParser::_parseAutoindex(const Directive& directive, CommonConfig& con
         throw std::runtime_error("Invalid autoindex argument: " + directive.args[0]);
     }
 }
-
-// error_page

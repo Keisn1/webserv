@@ -374,3 +374,111 @@ TEST_F(ServerConfigTest, SimpleCheckOfAutoindex) {
     EXPECT_EQ(config[0].listen.at("::1"), 80);
     EXPECT_EQ(config[0].common.autoindex, false);
 }
+
+TEST_F(ServerConfigTest, ErrorPageInsufficientArguments) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    error_page 404;\n"  // Missing URI
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, ValidErrorPageDirective) {
+    std::vector<ServerConfig> config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    server_name example.com;\n"
+        "    root /var/www;\n"
+        "    error_page 404 500 /errors/50x.html;\n"
+        "}\n"
+    );
+
+    EXPECT_EQ(config[0].common.errorPage[404], "/errors/50x.html");
+    EXPECT_EQ(config[0].common.errorPage[500], "/errors/50x.html");
+}
+
+TEST_F(ServerConfigTest, ErrorPageInvalidStatusCode) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    error_page 200 /ok.html;\n"
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, ErrorPageNonNumericCode) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    error_page 4o4 /errors.html;\n"
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, ValidAutoindexOn) {
+    std::vector<ServerConfig> config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    server_name example.com;\n"
+        "    root /var/www;\n"
+        "    autoindex on;\n"
+        "}\n"
+    );
+
+    EXPECT_TRUE(config[0].common.autoindex);
+}
+
+TEST_F(ServerConfigTest, ValidAutoindexOff) {
+    std::vector<ServerConfig> config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    server_name example.com;\n"
+        "    root /var/www;\n"
+        "    autoindex off;\n"
+        "}\n"
+    );
+
+    EXPECT_FALSE(config[0].common.autoindex);
+}
+
+TEST_F(ServerConfigTest, InvalidAutoindexValue) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    autoindex maybe;\n"
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, DefaultAutoindexValue) {
+    std::vector<ServerConfig> config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    server_name example.com;\n"
+        "    root /var/www;\n"
+        "}\n"
+    );
+
+    EXPECT_FALSE(config[0].common.autoindex);
+}
