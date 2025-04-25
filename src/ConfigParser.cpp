@@ -126,11 +126,15 @@ void ConfigParser::_processServerDirectives(const Context& context, ServerConfig
             _parseAutoindex(*it, serverConfig.common);
         } else if (it->name == "error_page"){
             _parseErrorPage(*it, serverConfig.common);
-        } else {
+        } else if (it->name == "cgi_ext"){
+            for (std::vector<Directive>::const_iterator search = context.directives.begin(); search != context.directives.end(); ++search) {
+                if (search->name == "cgi_path") {
+                    _parseCgi(*it, *search, serverConfig);
+                }
+            }
+        } else if (it->name != "cgi_path"){
             throw std::runtime_error("Unknown directive in server context: " + it->name);
         }
-        // cgi_path
-        // cgi_ext
     }
 }
 
@@ -184,6 +188,10 @@ void ConfigParser::_validateServerContext(const Context& context) {
         throw std::runtime_error("Server block missing required server_name directive");
     } else if (!findDirective(context, "root")) {
         throw std::runtime_error("Server block missing required root directive");
+    } else if (findDirective(context, "cgi_path") && !findDirective(context, "cgi_ext")) {
+        throw std::runtime_error("Server block missing required cgi_ext directive");
+    } else if (!findDirective(context, "cgi_path") && findDirective(context, "cgi_ext")) {
+        throw std::runtime_error("Server block missing required cgi_path directive");
     }
 }
 

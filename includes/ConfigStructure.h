@@ -57,8 +57,7 @@ typedef struct LocationConfig {
 typedef struct ServerConfig {
   std::map<std::string, int> listen;
   std::vector<std::string> serverNames;
-  // cgi_path
-  // cgi_ext
+  std::map<std::string, std::string> cgi;
   CommonConfig common;
   std::vector<LocationConfig> locations;
 } ServerConfig;

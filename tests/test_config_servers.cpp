@@ -482,3 +482,138 @@ TEST_F(ServerConfigTest, DefaultAutoindexValue) {
 
     EXPECT_FALSE(config[0].common.autoindex);
 }
+
+TEST_F(ServerConfigTest, ValidPairedCGI) {
+    std::vector<ServerConfig> config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    server_name example.com;\n"
+        "    root /var/www;\n"
+        "    cgi_ext .php .py;\n"
+        "    cgi_path /usr/bin/php-cgi /usr/bin/python;\n"
+        "}\n"
+    );
+
+    EXPECT_EQ(config[0].cgi.size(), 2);
+    EXPECT_EQ(config[0].cgi[".php"], "/usr/bin/php-cgi");
+    EXPECT_EQ(config[0].cgi[".py"], "/usr/bin/python");
+}
+
+TEST_F(ServerConfigTest, MismatchedArgumentCounts) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    cgi_ext .php .py;\n"
+            "    cgi_path /usr/bin/php-cgi;\n"  // 1 path for 2 extensions
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, MissingCGIPath) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    cgi_ext .php;\n"  // No cgi_path
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, MissingCGIExt) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    cgi_path /usr/bin/php-cgi;\n"  // No cgi_ext
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, InvalidExtensionFormat) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    cgi_ext php;\n"  // Missing leading dot
+            "    cgi_path /usr/bin/php-cgi;\n"
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, NonAbsolutePath) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    cgi_ext .php;\n"
+            "    cgi_path php-cgi;\n"  // Relative path
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, MultipleCGIDirectives) {
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    cgi_ext .php;\n"
+            "    cgi_path /usr/bin/php-cgi;\n"
+            "    cgi_ext .py;\n"  // Duplicate directive
+            "}\n"
+        ),
+        std::runtime_error
+    );
+}
+
+TEST_F(ServerConfigTest, DuplicateExtensions) {
+    std::vector<ServerConfig> config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    server_name example.com;\n"
+        "    root /var/www;\n"
+        "    cgi_ext .php .php;\n"  // Duplicate extension
+        "    cgi_path /usr/bin/php-cgi /updated/php-cgi;\n"
+        "}\n"
+    );
+
+    // Assumes last occurrence wins
+    EXPECT_EQ(config[0].cgi[".php"], "/updated/php-cgi");
+}
+
+TEST_F(ServerConfigTest, CaseSensitiveExtensions) {
+    std::vector<ServerConfig> config = parseConfig(
+        "server {\n"
+        "    listen 80;\n"
+        "    server_name example.com;\n"
+        "    root /var/www;\n"
+        "    cgi_ext .PHP .py;\n"  // Uppercase extension
+        "    cgi_path /usr/bin/php-cgi /usr/bin/python;\n"
+        "}\n"
+    );
+
+    EXPECT_EQ(config[0].cgi[".PHP"], "/usr/bin/php-cgi");
+    EXPECT_EQ(config[0].cgi.count(".php"), 0); // Case-sensitive check
+}

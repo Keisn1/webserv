@@ -116,9 +116,9 @@ void ConfigParser::_parseUse(const Directive& directive, EventsConfig& config) {
 
 void ConfigParser::_parseErrorPage(const Directive& directive, CommonConfig& config) {
     const std::vector<std::string>& args = directive.args;
-    const size_t arg_count = args.size();
+    const size_t argCount = args.size();
 
-    if (arg_count < 2) {
+    if (argCount < 2) {
         throw std::runtime_error("error_page directive requires at least 2 arguments");
     }
 
@@ -127,7 +127,7 @@ void ConfigParser::_parseErrorPage(const Directive& directive, CommonConfig& con
         throw std::runtime_error("Invalid error_page URI: " + uri);
     }
 
-    for (size_t i = 0; i < arg_count - 1; ++i) {
+    for (size_t i = 0; i < argCount - 1; ++i) {
         const std::string& code_str = args[i];
         const char* start = code_str.c_str();
         char* end;
@@ -151,5 +151,20 @@ void ConfigParser::_parseAutoindex(const Directive& directive, CommonConfig& con
         config.autoindex = true;
     } else if (directive.args[0] != "off") {
         throw std::runtime_error("Invalid autoindex argument: " + directive.args[0]);
+    }
+}
+
+void ConfigParser::_parseCgi(const Directive& cgiExt, const Directive& cgiPath, ServerConfig& config) {
+    if (cgiExt.args.size() != cgiPath.args.size()) {
+        throw std::runtime_error("decide later");
+    }
+    for (size_t i = 0; i < cgiExt.args.size(); ++i) {
+        if (cgiExt.args[i][0] != '.') {
+            throw std::runtime_error("Invalid cgi_ext argument: " + cgiExt.args[i]);
+        }
+        if (cgiPath.args[i][0] != '/') {
+            throw std::runtime_error("Invalid cgi_path argument: " + cgiExt.args[i]);
+        }
+        config.cgi[cgiExt.args[i]] = cgiPath.args[i];
     }
 }
