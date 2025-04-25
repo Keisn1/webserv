@@ -489,8 +489,8 @@ TEST_F(ServerConfigTest, ValidPairedCGI) {
         "    listen 80;\n"
         "    server_name example.com;\n"
         "    root /var/www;\n"
-        "    cgi_ext .php .py;\n"
-        "    cgi_path /usr/bin/php-cgi /usr/bin/python;\n"
+        "    cgi_ext .php /usr/bin/php-cgi;\n"
+        "    cgi_ext .py /usr/bin/python;\n"
         "}\n"
     );
 
@@ -506,8 +506,8 @@ TEST_F(ServerConfigTest, MismatchedArgumentCounts) {
             "    listen 80;\n"
             "    server_name example.com;\n"
             "    root /var/www;\n"
-            "    cgi_ext .php .py;\n"
-            "    cgi_path /usr/bin/php-cgi;\n"  // 1 path for 2 extensions
+            "    cgi_ext .php /usr/bin/php-cgi;\n"
+            "    cgi_ext .py ;\n"
             "}\n"
         ),
         std::runtime_error
@@ -521,7 +521,7 @@ TEST_F(ServerConfigTest, MissingCGIPath) {
             "    listen 80;\n"
             "    server_name example.com;\n"
             "    root /var/www;\n"
-            "    cgi_ext .php;\n"  // No cgi_path
+            "    cgi_ext .php;\n"
             "}\n"
         ),
         std::runtime_error
@@ -535,7 +535,7 @@ TEST_F(ServerConfigTest, MissingCGIExt) {
             "    listen 80;\n"
             "    server_name example.com;\n"
             "    root /var/www;\n"
-            "    cgi_path /usr/bin/php-cgi;\n"  // No cgi_ext
+            "    cgi_ext /usr/bin/php-cgi;\n"
             "}\n"
         ),
         std::runtime_error
@@ -549,8 +549,7 @@ TEST_F(ServerConfigTest, InvalidExtensionFormat) {
             "    listen 80;\n"
             "    server_name example.com;\n"
             "    root /var/www;\n"
-            "    cgi_ext php;\n"  // Missing leading dot
-            "    cgi_path /usr/bin/php-cgi;\n"
+            "    cgi_ext php /usr/bin/php-cgi;\n"
             "}\n"
         ),
         std::runtime_error
@@ -564,8 +563,7 @@ TEST_F(ServerConfigTest, NonAbsolutePath) {
             "    listen 80;\n"
             "    server_name example.com;\n"
             "    root /var/www;\n"
-            "    cgi_ext .php;\n"
-            "    cgi_path php-cgi;\n"  // Relative path
+            "    cgi_ext .php php-cgi;\n"
             "}\n"
         ),
         std::runtime_error
@@ -579,9 +577,8 @@ TEST_F(ServerConfigTest, MultipleCGIDirectives) {
             "    listen 80;\n"
             "    server_name example.com;\n"
             "    root /var/www;\n"
-            "    cgi_ext .php;\n"
-            "    cgi_path /usr/bin/php-cgi;\n"
-            "    cgi_ext .py;\n"  // Duplicate directive
+            "    cgi_ext .php /usr/bin/php-cgi;\n"
+            "    cgi_ext .py;\n"
             "}\n"
         ),
         std::runtime_error
@@ -589,18 +586,18 @@ TEST_F(ServerConfigTest, MultipleCGIDirectives) {
 }
 
 TEST_F(ServerConfigTest, DuplicateExtensions) {
-    std::vector<ServerConfig> config = parseConfig(
-        "server {\n"
-        "    listen 80;\n"
-        "    server_name example.com;\n"
-        "    root /var/www;\n"
-        "    cgi_ext .php .php;\n"  // Duplicate extension
-        "    cgi_path /usr/bin/php-cgi /updated/php-cgi;\n"
-        "}\n"
+    EXPECT_THROW(
+        parseConfig(
+            "server {\n"
+            "    listen 80;\n"
+            "    server_name example.com;\n"
+            "    root /var/www;\n"
+            "    cgi_ext .php /usr/bin/php-cgi;\n"
+            "    cgi_ext .php /updated/php-cgi;\n"
+            "}\n"
+        ),
+        std::runtime_error
     );
-
-    // Assumes last occurrence wins
-    EXPECT_EQ(config[0].cgi[".php"], "/updated/php-cgi");
 }
 
 TEST_F(ServerConfigTest, CaseSensitiveExtensions) {
@@ -609,11 +606,11 @@ TEST_F(ServerConfigTest, CaseSensitiveExtensions) {
         "    listen 80;\n"
         "    server_name example.com;\n"
         "    root /var/www;\n"
-        "    cgi_ext .PHP .py;\n"  // Uppercase extension
-        "    cgi_path /usr/bin/php-cgi /usr/bin/python;\n"
+        "    cgi_ext .PHP /usr/bin/php-cgi;\n"
+        "    cgi_ext .py /usr/bin/python;\n"
         "}\n"
     );
 
     EXPECT_EQ(config[0].cgi[".PHP"], "/usr/bin/php-cgi");
-    EXPECT_EQ(config[0].cgi.count(".php"), 0); // Case-sensitive check
+    EXPECT_EQ(config[0].cgi[".py"], "/usr/bin/python");
 }

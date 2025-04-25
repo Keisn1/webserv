@@ -154,17 +154,15 @@ void ConfigParser::_parseAutoindex(const Directive& directive, CommonConfig& con
     }
 }
 
-void ConfigParser::_parseCgi(const Directive& cgiExt, const Directive& cgiPath, ServerConfig& config) {
-    if (cgiExt.args.size() != cgiPath.args.size()) {
-        throw std::runtime_error("decide later");
-    }
-    for (size_t i = 0; i < cgiExt.args.size(); ++i) {
-        if (cgiExt.args[i][0] != '.') {
-            throw std::runtime_error("Invalid cgi_ext argument: " + cgiExt.args[i]);
-        }
-        if (cgiPath.args[i][0] != '/') {
-            throw std::runtime_error("Invalid cgi_path argument: " + cgiExt.args[i]);
-        }
-        config.cgi[cgiExt.args[i]] = cgiPath.args[i];
-    }
+void ConfigParser::_parseCgiExt(const Directive& directive, ServerConfig& config) {
+    if (directive.args.size() != 2) {
+        throw std::runtime_error("cgi_ext requires exactly two arguments");
+    } else if (directive.args[0][0] != '.') {
+        throw std::runtime_error("Invalid cgi_ext argument: " + directive.args[0]);
+    } else if (directive.args[1][0] != '/') {
+        throw std::runtime_error("Invalid cgi_ext argument: " + directive.args[1]);
+    } else if (config.cgi.find(directive.args[0]) != config.cgi.end()) {
+        throw std::runtime_error("Duplicate cgi_ext extension: " + directive.args[0]);
+    } 
+    config.cgi.insert(std::pair<std::string, std::string>(directive.args[0], directive.args[1]));
 }
