@@ -28,6 +28,10 @@ class Connection {
     sockaddr_storage getAddr() const;
     HttpResponse _response;
     void setState(Connection::STATE state) { _state = state; }
+
+    // THIS IS TEMP ADD
+    size_t preBodySize;
+    std::string body;
 };
 
 #endif // CONNECTION_H
