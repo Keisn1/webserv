@@ -47,36 +47,72 @@ void BodyParser::_parseContentLength(Connection* conn) {
 
 void BodyParser::parse(Connection* conn) {
     if (conn->_request.headers.find("transfer-encoding") != conn->_request.headers.end()) {
+        BodyContext& bodyCtx = conn->bodyCtx;
         if (!conn->_readBuf.size()) {
             conn->_bodyFinished = true;
             return;
         }
-        size_t subContentLength;
         std::string subContent;
-        std::string body = std::string(conn->_readBuf.data());
-        if (body.find("0\r\n\r\n") == std::string::npos) {
-            setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
-            conn->setState(Connection::SendResponse);
-            return;
-    }
+        std::cout << "AT THE BEGINNING, TEMPSTORE IS: " << bodyCtx.tempStore << "READBUF IS: " << conn->_readBuf.data() << std::endl;
+        std::string body = bodyCtx.tempStore + std::string(conn->_readBuf.data());
+        // if (body.find("0\r\n\r\n") == std::string::npos) {
+        //     setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
+        //     conn->setState(Connection::SendResponse);
+        //     return;
+        // }
         size_t pos = 0;
         size_t holdPos = 0;
         while(pos < body.size()) {
-            holdPos = pos;
-            pos = body.find("\r\n", holdPos);
-            std::istringstream iss(body.substr(holdPos, pos - holdPos));
-            iss >> subContentLength;
-            pos += 2;
-            holdPos = pos;
-            pos = body.find("\r\n", holdPos);
-            subContent = body.substr(holdPos, pos - holdPos);
-            if (subContent.size() != subContentLength) {
-                setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
-                conn->setState(Connection::SendResponse);
-                return;
+            std::cout << "THE BODY IS: " << body << std::endl;
+            if (bodyCtx.lengthOrBody == false) {
+                holdPos = pos;
+                pos = body.find("\r\n", holdPos);
+                std::cout << "----------------TEST1----------------\n";
+                if (pos == std::string::npos) {
+                    std::cout << "----------------TEST2----------------\n";
+                    bodyCtx.tempStore = body.substr(holdPos);
+                    return;
+                }
+                std::istringstream iss(body.substr(holdPos, pos - holdPos));
+                iss >> bodyCtx.contentLength;
+                bodyCtx.lengthOrBody = true;
+                pos += 2;
             }
-            conn->_tempBody += subContent;
-            pos += 2;
+            if (bodyCtx.lengthOrBody == true) {
+                holdPos = pos;
+                std::cout << "----------------TEST3----------------\n";
+                if (holdPos == body.size()) {
+                    std::cout << "----------------TEST4----------------\n";
+                    bodyCtx.tempStore = "";
+                    return;
+                }
+                pos = body.find("\r\n", holdPos);
+                std::cout << "----------------TEST5----------------\n";
+                if (pos == std::string::npos) {
+                    bodyCtx.tempStore = body.substr(holdPos);
+                    std::cout << "----------------TEST6----------------" << bodyCtx.tempStore << "----------------" << std::endl;;
+                    return;
+                }
+                subContent = body.substr(holdPos, pos - holdPos);
+                std::cout << "----------------TEST7----------------" << subContent << "----------------" << std::endl;;
+                if (subContent.size() != bodyCtx.contentLength) {
+                    std::cout << "----------------TEST8----------------\n";
+                    setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
+                    conn->setState(Connection::SendResponse);
+                    return;
+                }
+                conn->_tempBody += subContent;
+                bodyCtx.lengthOrBody = false;
+                pos += 2;
+                std::cout << "----------------TEST9----------------\n";
+                if (pos == body.size()) {
+                    std::cout << "----------------TEST10----------------\n";
+                    bodyCtx.tempStore = "";
+                }
+                bodyCtx.tempStore = body.substr(pos);
+                std::cout << "TEMPSTORE IS: " << bodyCtx.tempStore << std::endl;
+            }
+            
         }
         conn->_bodyFinished = true;
         return;

@@ -227,3 +227,30 @@ TEST(BodyParserTest, transferEncodingTestForCorrectBody) {
     delete conn;
     delete bodyPrsr;
 }
+
+TEST(BodyParserTest, transferEncodingTestForCorrectBodyButPartly) {
+    BodyParser* bodyPrsr = new BodyParser();
+    Connection* conn = new Connection({}, -1, "", NULL, NULL);
+    conn->_request.headers["transfer-encoding"] = "chunked";
+    conn->setState(Connection::Handling);
+    conn->_bodyFinished = false;
+    std::string body("6\r\nhello \r\n6\r\nworld!\r\n0\r\n\r\n");
+    
+    size_t pos = 0;
+    // int chunkSize = 6;
+    int chunkSize = getRandomNumber(5, 10);
+    std::cout << chunkSize << std::endl;
+    while (pos <= body.size()) {
+        std::string bodyChunk = body.substr(pos, chunkSize);
+        pos += chunkSize;
+
+        conn->_readBuf.assign(bodyChunk);
+        bodyPrsr->parse(conn);
+    }
+
+    EXPECT_EQ(conn->_tempBody, "hello world!");
+    EXPECT_TRUE(conn->_bodyFinished);
+
+    delete conn;
+    delete bodyPrsr;
+}

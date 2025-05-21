@@ -17,7 +17,9 @@
 typedef struct BodyContext {
     size_t bytesReceived;
     size_t contentLength;
-    BodyContext() : bytesReceived(0), contentLength(0) {}
+    std::string tempStore;
+    bool lengthOrBody = false;
+    BodyContext() : bytesReceived(0), contentLength(0), tempStore("") {}
 } BodyContext;
 
 typedef struct UploadContext {
