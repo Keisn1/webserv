@@ -54,6 +54,11 @@ void BodyParser::parse(Connection* conn) {
         size_t subContentLength;
         std::string subContent;
         std::string body = std::string(conn->_readBuf.data());
+        if (body.find("0\r\n\r\n") == std::string::npos) {
+            setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
+            conn->setState(Connection::SendResponse);
+            return;
+    }
         size_t pos = 0;
         size_t holdPos = 0;
         while(pos < body.size()) {
