@@ -173,14 +173,33 @@ TEST(BodyParserTest, transferEncodingTestForNoBody) {
     delete conn;
     delete bodyPrsr;
 }
-
-TEST(BodyParserTest, transferEncodingTestForIncorrectBody) {
+// for this test, the content-length is not equal to the actrual length of the content
+TEST(BodyParserTest, transferEncodingTestForIncorrectBody1) {
     BodyParser* bodyPrsr = new BodyParser();
     Connection* conn = new Connection({}, -1, "", NULL, NULL);
     conn->_request.headers["transfer-encoding"] = "chunked";
     conn->setState(Connection::Handling);
     conn->_bodyFinished = false;
     conn->_readBuf.assign("6\r\nhello\r\n0\r\n\r\n");
+
+    bodyPrsr->parse(conn);
+
+    EXPECT_EQ(conn->getState(), Connection::SendResponse);
+    EXPECT_EQ(conn->_response.statusCode, 400);
+    EXPECT_EQ(conn->_response.statusMessage, "Bad Request");
+
+    delete conn;
+    delete bodyPrsr;
+}
+
+// for this test, there is no "0\r\n\r\n" ending
+TEST(BodyParserTest, transferEncodingTestForIncorrectBody2) {
+    BodyParser* bodyPrsr = new BodyParser();
+    Connection* conn = new Connection({}, -1, "", NULL, NULL);
+    conn->_request.headers["transfer-encoding"] = "chunked";
+    conn->setState(Connection::Handling);
+    conn->_bodyFinished = false;
+    conn->_readBuf.assign("6\r\nhello!\r\n");
 
     bodyPrsr->parse(conn);
 
