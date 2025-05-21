@@ -5,6 +5,7 @@
 
 class BodyParser {
   private:
+    void _parseContentLength(Connection* conn);
     bool _checkContentLength(Connection* conn, BodyContext& bodyCtx);
 
   public:
