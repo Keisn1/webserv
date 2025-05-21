@@ -51,28 +51,28 @@ void BodyParser::parse(Connection* conn) {
             conn->_bodyFinished = true;
             return;
         }
-        // size_t subContentLength;
-        // std::string subContent;
-        // std::string body = std::string(conn->_readBuf.data());
-        // size_t pos = 0;
-        // size_t holdPos = 0;
-        // while(pos < body.size()) {
-        //     holdPos = pos;
-        //     pos = body.find("\r\n", holdPos);
-        //     std::istringstream iss(body.substr(holdPos, pos - holdPos));
-        //     iss >> subContentLength;
-        //     pos += 2;
-        //     holdPos = pos;
-        //     pos = body.find("\r\n", holdPos);
-        //     subContent = body.substr(holdPos, pos - holdPos);
-        //     if (subContent.size() != subContentLength) {
-        //         setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
-        //         conn->setState(Connection::SendResponse);
-        //         return;
-        //     }
-        //     conn->_tempBody += subContent;
-        //     pos += 2;
-        // }
+        size_t subContentLength;
+        std::string subContent;
+        std::string body = std::string(conn->_readBuf.data());
+        size_t pos = 0;
+        size_t holdPos = 0;
+        while(pos < body.size()) {
+            holdPos = pos;
+            pos = body.find("\r\n", holdPos);
+            std::istringstream iss(body.substr(holdPos, pos - holdPos));
+            iss >> subContentLength;
+            pos += 2;
+            holdPos = pos;
+            pos = body.find("\r\n", holdPos);
+            subContent = body.substr(holdPos, pos - holdPos);
+            if (subContent.size() != subContentLength) {
+                setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
+                conn->setState(Connection::SendResponse);
+                return;
+            }
+            conn->_tempBody += subContent;
+            pos += 2;
+        }
         return;
     }
     _parseContentLength(conn);
