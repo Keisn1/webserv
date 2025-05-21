@@ -73,6 +73,7 @@ void BodyParser::parse(Connection* conn) {
             conn->_tempBody += subContent;
             pos += 2;
         }
+        conn->_bodyFinished = true;
         return;
     }
     _parseContentLength(conn);
