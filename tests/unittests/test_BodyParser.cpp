@@ -157,3 +157,19 @@ TEST(BodyParserTest, noContentLengthSetsBodyToFinished) {
     delete conn;
     delete bodyPrsr;
 }
+
+TEST(BodyParserTest, transferEncodingTest1) {
+    BodyParser* bodyPrsr = new BodyParser();
+    Connection* conn = new Connection({}, -1, "", NULL, NULL);
+    conn->_request.headers["transfer-encoding"] = "chunked";
+    conn->setState(Connection::Handling);
+    conn->_bodyFinished = false;
+
+    bodyPrsr->parse(conn);
+
+    EXPECT_TRUE(conn->_bodyFinished);
+
+
+    delete conn;
+    delete bodyPrsr;
+}

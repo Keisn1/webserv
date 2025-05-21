@@ -28,6 +28,9 @@ void BodyParser::parse(Connection* conn) {
     BodyContext& bodyCtx = conn->bodyCtx;
     Buffer& readBuf = conn->_readBuf;
 
+    if (conn->_request.headers.find("transfer-encoding") != conn->_request.headers.end()) {
+        return;
+    }
     if (bodyCtx.contentLength == 0) {
         if (!_checkContentLength(conn, bodyCtx))
             return;
