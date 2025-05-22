@@ -45,64 +45,126 @@ void BodyParser::_parseContentLength(Connection* conn) {
     }
 }
 
+void BodyParser::_parseTranfsferEncoding(Connection* conn) {
+    BodyContext& bodyCtx = conn->bodyCtx;
+    if (!conn->_readBuf.size()) {
+        conn->_bodyFinished = true;
+        return;
+    }
+    std::string subContent;
+    std::string body = bodyCtx.tempStore + std::string(conn->_readBuf.data());
+    size_t pos = 0;
+    size_t holdPos = 0;
+    while(pos < body.size()) {
+        if (bodyCtx.lengthOrBody == false) {
+            holdPos = pos;
+            if ((pos = body.find("\r\n", holdPos)) == std::string::npos) {
+                bodyCtx.tempStore = body.substr(holdPos);
+                return;
+            }
+            std::istringstream iss(body.substr(holdPos, pos - holdPos));
+            iss >> bodyCtx.contentLength;
+            if (bodyCtx.contentLength == 0) {
+                if ((pos = body.find("\r\n\r\n")) == std::string::npos) {
+                    bodyCtx.tempStore = body.substr(holdPos);
+                    return;
+                }
+                conn->_bodyFinished = true;
+                return;
+            }
+            bodyCtx.lengthOrBody = true;
+            pos += 2;
+        }
+        if (bodyCtx.lengthOrBody == true) {
+            holdPos = pos;
+            if (holdPos == body.size()) {
+                bodyCtx.tempStore = "";
+                return;
+            }
+            if ((pos = body.find("\r\n", holdPos)) == std::string::npos) {
+                bodyCtx.tempStore = body.substr(holdPos);
+                return;
+            }
+            subContent = body.substr(holdPos, pos - holdPos);
+            if (subContent.size() != bodyCtx.contentLength) {
+                setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
+                conn->setState(Connection::SendResponse);
+                return;
+            }
+            conn->_tempBody += subContent;
+            bodyCtx.lengthOrBody = false;
+            pos += 2;
+            if (pos == body.size()) {
+                bodyCtx.tempStore = "";
+            }
+            bodyCtx.tempStore = body.substr(pos);
+        }
+    }
+    setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
+    conn->setState(Connection::SendResponse);
+    return;
+}
+
 void BodyParser::parse(Connection* conn) {
     if (conn->_request.headers.find("transfer-encoding") != conn->_request.headers.end()) {
-        BodyContext& bodyCtx = conn->bodyCtx;
-        if (!conn->_readBuf.size()) {
-            conn->_bodyFinished = true;
-            return;
-        }
-        std::string subContent;
-        std::string body = bodyCtx.tempStore + std::string(conn->_readBuf.data());
-        size_t pos = 0;
-        size_t holdPos = 0;
-        while(pos < body.size()) {
-            if (bodyCtx.lengthOrBody == false) {
-                holdPos = pos;
-                if ((pos = body.find("\r\n", holdPos)) == std::string::npos) {
-                    bodyCtx.tempStore = body.substr(holdPos);
-                    return;
-                }
-                std::istringstream iss(body.substr(holdPos, pos - holdPos));
-                iss >> bodyCtx.contentLength;
-                if (bodyCtx.contentLength == 0) {
-                    if ((pos = body.find("\r\n\r\n")) == std::string::npos) {
-                        bodyCtx.tempStore = body.substr(holdPos);
-                        return;
-                    }
-                    conn->_bodyFinished = true;
-                    return;
-                }
-                bodyCtx.lengthOrBody = true;
-                pos += 2;
-            }
-            if (bodyCtx.lengthOrBody == true) {
-                holdPos = pos;
-                if (holdPos == body.size()) {
-                    bodyCtx.tempStore = "";
-                    return;
-                }
-                if ((pos = body.find("\r\n", holdPos)) == std::string::npos) {
-                    bodyCtx.tempStore = body.substr(holdPos);
-                    return;
-                }
-                subContent = body.substr(holdPos, pos - holdPos);
-                if (subContent.size() != bodyCtx.contentLength) {
-                    setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
-                    conn->setState(Connection::SendResponse);
-                    return;
-                }
-                conn->_tempBody += subContent;
-                bodyCtx.lengthOrBody = false;
-                pos += 2;
-                if (pos == body.size()) {
-                    bodyCtx.tempStore = "";
-                }
-                bodyCtx.tempStore = body.substr(pos);
-            }
-        }
-        setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
-        conn->setState(Connection::SendResponse);
+        // BodyContext& bodyCtx = conn->bodyCtx;
+        // if (!conn->_readBuf.size()) {
+        //     conn->_bodyFinished = true;
+        //     return;
+        // }
+        // std::string subContent;
+        // std::string body = bodyCtx.tempStore + std::string(conn->_readBuf.data());
+        // size_t pos = 0;
+        // size_t holdPos = 0;
+        // while(pos < body.size()) {
+        //     if (bodyCtx.lengthOrBody == false) {
+        //         holdPos = pos;
+        //         if ((pos = body.find("\r\n", holdPos)) == std::string::npos) {
+        //             bodyCtx.tempStore = body.substr(holdPos);
+        //             return;
+        //         }
+        //         std::istringstream iss(body.substr(holdPos, pos - holdPos));
+        //         iss >> bodyCtx.contentLength;
+        //         if (bodyCtx.contentLength == 0) {
+        //             if ((pos = body.find("\r\n\r\n")) == std::string::npos) {
+        //                 bodyCtx.tempStore = body.substr(holdPos);
+        //                 return;
+        //             }
+        //             conn->_bodyFinished = true;
+        //             return;
+        //         }
+        //         bodyCtx.lengthOrBody = true;
+        //         pos += 2;
+        //     }
+        //     if (bodyCtx.lengthOrBody == true) {
+        //         holdPos = pos;
+        //         if (holdPos == body.size()) {
+        //             bodyCtx.tempStore = "";
+        //             return;
+        //         }
+        //         if ((pos = body.find("\r\n", holdPos)) == std::string::npos) {
+        //             bodyCtx.tempStore = body.substr(holdPos);
+        //             return;
+        //         }
+        //         subContent = body.substr(holdPos, pos - holdPos);
+        //         if (subContent.size() != bodyCtx.contentLength) {
+        //             setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
+        //             conn->setState(Connection::SendResponse);
+        //             return;
+        //         }
+        //         conn->_tempBody += subContent;
+        //         bodyCtx.lengthOrBody = false;
+        //         pos += 2;
+        //         if (pos == body.size()) {
+        //             bodyCtx.tempStore = "";
+        //         }
+        //         bodyCtx.tempStore = body.substr(pos);
+        //     }
+        // }
+        // setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
+        // conn->setState(Connection::SendResponse);
+        // return;
+        _parseTranfsferEncoding(conn);
         return;
     }
     _parseContentLength(conn);
