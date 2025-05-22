@@ -237,9 +237,8 @@ TEST(BodyParserTest, transferEncodingTestForCorrectBodyButPartly) {
     std::string body("6\r\nhello \r\n6\r\nworld!\r\n0\r\n\r\n");
     
     size_t pos = 0;
-    // int chunkSize = 6;
-    int chunkSize = getRandomNumber(5, 10);
-    std::cout << chunkSize << std::endl;
+    // int chunkSize = 4;
+    int chunkSize = getRandomNumber(5, 100);
     while (pos <= body.size()) {
         std::string bodyChunk = body.substr(pos, chunkSize);
         pos += chunkSize;
