@@ -256,7 +256,7 @@ TEST(BodyParserTest, transferEncodingTestForCorrectBodyButPartly) {
     
     size_t pos = 0;
     // int chunkSize = 4;
-    int chunkSize = getRandomNumber(5, 100);
+    int chunkSize = getRandomNumber(2, 10);
     while (pos <= body.size()) {
         std::string bodyChunk = body.substr(pos, chunkSize);
         pos += chunkSize;
