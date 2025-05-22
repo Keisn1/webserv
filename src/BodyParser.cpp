@@ -75,30 +75,28 @@ void BodyParser::_parseTranfsferEncoding(Connection* conn) {
             bodyCtx.lengthOrBody = true;
             pos += 2;
         }
-        if (bodyCtx.lengthOrBody == true) {
-            holdPos = pos;
-            if (holdPos == body.size()) {
-                bodyCtx.tempStore = "";
-                return;
-            }
-            if ((pos = body.find("\r\n", holdPos)) == std::string::npos) {
-                bodyCtx.tempStore = body.substr(holdPos);
-                return;
-            }
-            subContent = body.substr(holdPos, pos - holdPos);
-            if (subContent.size() != bodyCtx.contentLength) {
-                setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
-                conn->setState(Connection::SendResponse);
-                return;
-            }
-            conn->_tempBody += subContent;
-            bodyCtx.lengthOrBody = false;
-            pos += 2;
-            if (pos == body.size()) {
-                bodyCtx.tempStore = "";
-            }
-            bodyCtx.tempStore = body.substr(pos);
+        holdPos = pos;
+        if (holdPos == body.size()) {
+            bodyCtx.tempStore = "";
+            return;
         }
+        if ((pos = body.find("\r\n", holdPos)) == std::string::npos) {
+            bodyCtx.tempStore = body.substr(holdPos);
+            return;
+        }
+        subContent = body.substr(holdPos, pos - holdPos);
+        if (subContent.size() != bodyCtx.contentLength) {
+            setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
+            conn->setState(Connection::SendResponse);
+            return;
+        }
+        conn->_tempBody += subContent;
+        bodyCtx.lengthOrBody = false;
+        pos += 2;
+        if (pos == body.size()) {
+            bodyCtx.tempStore = "";
+        }
+        bodyCtx.tempStore = body.substr(pos);
     }
     setErrorResponse(conn->_response, 400, "Bad Request", conn->route.cfg);
     conn->setState(Connection::SendResponse);
