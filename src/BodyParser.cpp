@@ -66,6 +66,7 @@ void BodyParser::_parseTranfsferEncoding(Connection* conn) {
             iss >> bodyCtx.contentLength;
             if (bodyCtx.contentLength == 0) {
                 if ((pos = body.find("\r\n\r\n")) == std::string::npos) {
+                    std::cout << "TEST\n";
                     bodyCtx.tempStore = body.substr(holdPos);
                     return;
                 }

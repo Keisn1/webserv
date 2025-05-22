@@ -211,6 +211,24 @@ TEST(BodyParserTest, transferEncodingTestForIncorrectBody2) {
     delete bodyPrsr;
 }
 
+TEST(BodyParserTest, transferEncodingTestForIncorrectBody3) {
+    BodyParser* bodyPrsr = new BodyParser();
+    Connection* conn = new Connection({}, -1, "", NULL, NULL);
+    conn->_request.headers["transfer-encoding"] = "chunked";
+    conn->setState(Connection::Handling);
+    conn->_bodyFinished = false;
+    conn->_readBuf.assign("6\r\nhello!\r\n0\r\n");
+
+    bodyPrsr->parse(conn);
+
+    EXPECT_EQ(conn->getState(), Connection::SendResponse);
+    EXPECT_EQ(conn->_response.statusCode, 400);
+    EXPECT_EQ(conn->_response.statusMessage, "Bad Request");
+
+    delete conn;
+    delete bodyPrsr;
+}
+
 TEST(BodyParserTest, transferEncodingTestForCorrectBody) {
     BodyParser* bodyPrsr = new BodyParser();
     Connection* conn = new Connection({}, -1, "", NULL, NULL);
