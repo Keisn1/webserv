@@ -1,11 +1,23 @@
 #include "Cookie.h"
 #include <cstdlib>
 
+std::string getRandomString(size_t length) { // this function is from test_utils.cpp, created by Kay
+    const std::string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    std::string randomString;
+
+    std::srand(static_cast< unsigned int >(std::time(0))); // Seed for random number generator
+
+    for (size_t i = 0; i < length; ++i) {
+        randomString += chars[std::rand() % chars.length()];
+    }
+
+    return randomString;
+}
+
 std::string Cookie::addSessionId(void) {
 	srand(static_cast<unsigned int>(time(NULL)));
 	CookieData newCookieData;
-	for (size_t i = 0; i < 10; i++)
-		newCookieData.name += static_cast<char>('a' + rand() % 26); // Generate a random lowercase letter
+	newCookieData.name = getRandomString(10);
 	newCookieData.maxAge = 3600; // 1 hour
 	newCookieData.expireTime = time(NULL) + newCookieData.maxAge; // current time + maxAge
 	newCookieData.newSession = true;
